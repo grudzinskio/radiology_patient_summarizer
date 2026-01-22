@@ -15,102 +15,44 @@ You can also make a free Gemini account via [Google AI Studio](https://aistudio.
 
 There is a tutorial on Google AI Studio's Page regarding setup, but please reach out to Brett Storoe (`storoeb@msoe.edu`) or Adam Haile (`hailea@msoe.edu`) with any questions.
 
-## Llama 3.2 Multimodal (Vision) model is running on Rosie
+## Llama model is running on Rosie
 
 Since so many of you are using this for the hackathon, the Gemini option above may be better (more consistent availability / less contention).
 
-- **Endpoint**: `http://dh-dgxh100-2.hpc.msoe.edu:8001/v1/chat/completions`
-- **Model**: `meta/llama-3.2-90b-vision-instruct`
-- **Auth**: no API key required (send any bearer value; see examples)
+First, install the OpenAI Python package:
 
-### Python (Requests) — streaming response
-
-```python
-import base64
-import json
-
-import requests
-
-invoke_url = "http://dh-dgxh100-2.hpc.msoe.edu:8001/v1/chat/completions"
-stream = True
-
-with open("roscoe.png", "rb") as f:
-    image_b64 = base64.b64encode(f.read()).decode()
-
-assert len(image_b64) < 180_000, "To upload larger images, use the assets API (see docs)"
-
-headers = {
-    "Authorization": "Bearer $NO_API_KEY_REQUIRED",
-    "Accept": "text/event-stream" if stream else "application/json",
-}
-
-payload = {
-    "model": "meta/llama-3.2-90b-vision-instruct",
-    "messages": [
-        {
-            "role": "user",
-            "content": f'What is in this image? <img src="data:image/png;base64,{image_b64}" />',
-        }
-    ],
-    "max_tokens": 512,
-    "temperature": 1.00,
-    "top_p": 1.00,
-    "stream": stream,
-}
-
-response = requests.post(invoke_url, headers=headers, json=payload)
-
-if stream:
-    complete_response = ""
-    for line in response.iter_lines():
-        if not line:
-            continue
-        try:
-            resp = line.decode("utf-8")
-            resp_json = json.loads(resp[5:])  # strips "data:"
-            resp_str = resp_json["choices"][0]["delta"]["content"]
-            complete_response += resp_str
-        except Exception:
-            pass
-    print(complete_response)
-else:
-    print(response.json())
+```bash
+pip install openai
 ```
 
-### Python (OpenAI-style SDK) — multimodal messages (data URL)
+Then, use the following code to interact with the Llama model:
 
 ```python
-import base64
-
 from openai import OpenAI
 
-with open("roscoe.png", "rb") as f:
-    image_b64 = base64.b64encode(f.read()).decode()
+stream = True
 
 client = OpenAI(
-    base_url="http://dh-dgxh100-2.hpc.msoe.edu:8001/v1",
-    api_key="not_used",
+    base_url='http://dh-dgxh100-2.hpc.msoe.edu:8000/v1',
+    api_key="not_used"  # this field needs to be included but is ignored
 )
 
-messages = [
-    {
-        "role": "user",
-        "content": [
-            {"type": "text", "text": "What is in this image?"},
-            {"type": "image_url", "image_url": {"url": f"data:image/png;base64,{image_b64}"}},
-        ],
-    }
-]
-
-completion = client.chat.completions.create(
-    model="meta/llama-3.2-90b-vision-instruct",
-    messages=messages,
-    max_tokens=512,
-    temperature=1.0,
-    stream=False,
+chat_completion = client.chat.completions.create(
+    model="meta/llama-3.3-70b-instruct",
+    messages=[{"role": "user", "content": "Why is MSOE the best school to study CS and AI?"}],
+    stream=stream
 )
 
-print(completion.choices[0].message.content)
+if stream:
+    for event in chat_completion:
+        if event.choices[0].finish_reason:
+            print(event.choices[0].finish_reason,
+                  event.usage['prompt_tokens'],
+                  event.usage['completion_tokens'])
+        else:
+            print(event.choices[0].delta.content, sep='', end='')
+else:
+    print(chat_completion.choices[0].message.content)
 ```
 
 ## OpenAI API keys (reimbursable)
