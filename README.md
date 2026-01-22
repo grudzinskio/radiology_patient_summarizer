@@ -4,7 +4,7 @@ In collaboriation with MSOE and the Medical College of Wisconsin, AI-Club is hop
 
 For more information about what an appropriate solution looks like, as well as important dates, please refer to the [Hack 4 Health Rubric](https://msoe365-my.sharepoint.com/:w:/g/personal/storoeb_msoe_edu/IQDnsSnjQao-Q4V6Ktbm2o58AX4-nZzgCxJ5jy45kSz11RY?e=HBD8UV)
 
-*Note*: Before you pull the repo, perform `git lfs install` to ensure you pull the large CVS. If it does not properly pull or you forgot to install, perform `git lfs pull`
+*Note*: Before you pull the repo, perform `git lfs install` to ensure you pull the large CSV. If it does not properly pull or you forgot to install, perform `git lfs pull`
 
 # LLM API Keys
 There are multiple options to running Large Language Models (LLMs) on or off of Rosie. First is using the LLM on Rosie's own H100.
