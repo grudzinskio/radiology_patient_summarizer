@@ -13,7 +13,7 @@ There are multiple options to running Large Language Models (LLMs) on or off of 
 
 You can also make a free Gemini account via [Google AI Studio](https://aistudio.google.com/) and get a rate-limited free tier of Gemini API keys.
 
-Please reach out to Brett Storoe (`storoeb@msoe.edu`) or Adam Haile (`hailea@msoe.edu`) with any questions about setting this up.
+There is a tutorial on Google AI Studio's Page regarding setup, but please reach out to Brett Storoe (`storoeb@msoe.edu`) or Adam Haile (`hailea@msoe.edu`) with any questions about setting this up.
 
 ## Llama 3.2 Multimodal (Vision) model is running on Rosie
 
