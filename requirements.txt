@@ -5,3 +5,6 @@ textstat
 rapidfuzz
 pydantic
 pandas
+spacy
+scispacy
+scispacy-linker
