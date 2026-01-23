@@ -1,0 +1,30 @@
+.venv/
+venv/
+.env
+.env.*
+*.env
+
+.vscode/
+
+# Python artifacts
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+
+# Notebooks
+.ipynb_checkpoints/
+
+# Frontend artifacts
+node_modules/
+dist/
+build/
+.next/
+out/
+
+# Logs and OS files
+*.log
+logs/
+.DS_Store
+Thumbs.db
