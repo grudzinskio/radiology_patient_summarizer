@@ -1,5 +1,3 @@
-import spacy
-from scispacy.linking import EntityLinker
 from typing import List
 from backend.app.services.summaries.validation.pipeline_components.pipeline_component import PipelineComponent
 import logging

@@ -1,9 +1,9 @@
 from imaplib import ParseFlags
 from backend.app.services.summaries.validation.pipeline_components.pipeline_component import PipelineComponent
 from typing import Any
+import logging
 import spacy
 from scispacy.linking import EntityLinker
-import logging
 import scispacy
 
 logger = logging.getLogger(__name__)
