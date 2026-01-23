@@ -16,47 +16,35 @@ from backend.app.utils.clients.llm_clients import BaseLLMClient, OpenAIClient
 logger = logging.getLogger(__name__)
 
 
-class SelfCorrectionLoop:
+class RefinerAgent:
     """
     Orchestrates the validation and refinement process.
     Automatically refines summaries when validation fails.
     """
     
-    def __init__(
-        self,
-        validation_pipeline: ValidationPipeline,
-        llm_client: Optional[BaseLLMClient] = None
-    ):
+    def __init__(self, llm_client: Optional[BaseLLMClient] = None):
         """
-        Initialize the self-correction loop.
+        Initialize the refiner agent.
         
         Args:
             validation_pipeline: Configured ValidationPipeline instance
             llm_client: LLM client for generating refined summaries (defaults to OpenAIClient)
         """
-        self.validation_pipeline = validation_pipeline
         self.llm_client = llm_client or OpenAIClient()
     
-    def refine_summary(
-        self,
-        original_report: str,
-        extracted_entities: EntityExtractionResult,
-        current_summary: str,
-        validation_report: ValidationReport,
-        retrieved_definitions: Optional[dict] = None
-    ) -> str:
+    def refine_summary(self, original_report: str, extracted_entities: EntityExtractionResult, current_summary: str, validation_report: ValidationReport, retrieved_definitions: Optional[dict] = None) -> str:
         """
-        Generate a refined summary based on validation errors.
+        Refine the summary based on validation errors.
         
         Args:
             original_report: The original medical report
-            extracted_entities: Entities extracted from the original report
+            extracted_entities: The entities extracted from the original report
             current_summary: The current summary that failed validation
-            validation_report: ValidationReport containing error details
-            retrieved_definitions: Optional dictionary of medical term definitions
+            validation_report: The validation report containing error details
+            retrieved_definitions: The dictionary of medical term definitions
             
         Returns:
-            Refined summary text
+            The refined summary text
         """
         # Collect all error messages
         error_messages = validation_report.get_all_errors()
@@ -133,7 +121,7 @@ class SelfCorrectionLoop:
             "",
             "CURRENT SUMMARY (that failed validation):",
             current_summary,
-        ]
+        ])
         
         if retrieved_definitions:
             prompt_parts.extend([
@@ -149,69 +137,3 @@ class SelfCorrectionLoop:
         ])
         
         return "\n".join(prompt_parts)
-    
-    def validate_and_refine(
-        self,
-        original_report: str,
-        extracted_entities: EntityExtractionResult,
-        draft_summary: str,
-        retrieved_definitions: Optional[dict] = None,
-        max_retries: int = MAX_RETRY_ATTEMPTS
-    ) -> Tuple[str, ValidationReport]:
-        """
-        Validate a summary and automatically refine it if validation fails.
-        
-        Args:
-            original_report: The original medical report
-            extracted_entities: Entities extracted from the original report
-            draft_summary: Initial draft summary to validate
-            retrieved_definitions: Optional dictionary of medical term definitions
-            max_retries: Maximum number of refinement attempts (default from config)
-            
-        Returns:
-            Tuple of (final_summary, final_validation_report)
-        """
-        current_summary = draft_summary
-        attempt = 0
-        
-        while attempt <= max_retries:
-            # Create validation input
-            validation_input = ValidationInput(
-                original_report=original_report,
-                extracted_entities=extracted_entities,
-                draft_summary=current_summary,
-                retrieved_definitions=retrieved_definitions
-            )
-            
-            # Run validation
-            validation_report = self.validation_pipeline.validate(validation_input)
-            
-            logger.info(
-                f"Validation attempt {attempt + 1}: "
-                f"{'PASSED' if validation_report.overall_passed else 'FAILED'} "
-                f"({len(validation_report.get_failed_components())} failed components)"
-            )
-            
-            # If validation passed, return
-            if validation_report.overall_passed:
-                return current_summary, validation_report
-            
-            # If we've reached max retries, return current summary with failed validation
-            if attempt >= max_retries:
-                logger.warning(f"Reached max retry attempts ({max_retries}). Returning summary with validation failures.")
-                return current_summary, validation_report
-            
-            # Refine the summary
-            logger.info(f"Refining summary (attempt {attempt + 1}/{max_retries})...")
-            current_summary = self.refine_summary(
-                original_report=original_report,
-                extracted_entities=extracted_entities,
-                current_summary=current_summary,
-                validation_report=validation_report,
-                retrieved_definitions=retrieved_definitions
-            )
-            
-            attempt += 1
-        
-        # Should not reach here, but return anyway
-        return current_summary, validation_report

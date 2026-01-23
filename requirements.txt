@@ -7,4 +7,3 @@ pydantic
 pandas
 spacy
 scispacy
-scispacy-linker

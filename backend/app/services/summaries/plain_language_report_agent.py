@@ -1,7 +1,7 @@
 from typing import Any, TypedDict
 
 from langgraph.graph import END, StateGraph
-from backend.app.services.summaries.entity_extraction.enitity_extraction_pipeline import run_extraction_pipeline
+from backend.app.services.summaries.entity_extraction.enitity_extraction_pipeline import EntityExtractionPipeline
 from backend.app.services.summaries.summarization.summarizer_agent import SummarizationAgent
 from backend.app.services.summaries.validation.validation_pipeline import ValidationPipeline
 from backend.app.services.summaries.refinement.refiner_agent import RefinerAgent
@@ -76,11 +76,11 @@ class PlainLanguageReportAgent:
 
 
     def _extraction_node(self, state: PlainLanguageReportAgentState) -> dict[str, Any]:
-        extracted_entities = run_extraction_pipeline(state["medical_report"])
+        extracted_entities = self.entity_extraction_pipeline.extract_entities(state["medical_report"])
         return {"extracted_entities": extracted_entities}
 
     def _summarization_node(self, state: PlainLanguageReportAgentState) -> dict[str, Any]:
-        plain_language_report = run_summarizer(
+        plain_language_report = self.summarization_agent.generate_summary(
             medical_report=state["medical_report"],
             extracted_entities=state["extracted_entities"],
         )
@@ -88,22 +88,21 @@ class PlainLanguageReportAgent:
 
 
     def _validation_node(self, state: PlainLanguageReportAgentState) -> dict[str, Any]:
-        result = run_validation_pipeline(
+        result = self.validation_pipeline.validate_summary(
             medical_report=state["medical_report"],
-            plain_language_report=state["plain_language_report"],
             extracted_entities=state["extracted_entities"],
+            draft_summary=state["plain_language_report"],
+            retrieved_definitions=state["retrieved_definitions_dictionary"],
         )
-        return {
-            "validation_passed": result["passed"],
-            "validation_reasons": result["reasons"],
-        }
+        return {"validation_pipeline_result": result}
 
 
     def _refinement_node(self, state: PlainLanguageReportAgentState) -> dict[str, Any]:
-        plain_language_report = run_refiner(
-            plain_language_report=state["plain_language_report"],
-            validation_reasons=state["validation_reasons"],
+        plain_language_report = self.refiner_agent.refine_summary(
+            original_report=state["medical_report"],
+            extracted_entities=state["extracted_entities"],
+            current_summary=state["plain_language_report"],
+            validation_report=state["validation_pipeline_result"],
+            retrieved_definitions=state["retrieved_definitions_dictionary"],
         )
         return {"plain_language_report": plain_language_report}
-
-

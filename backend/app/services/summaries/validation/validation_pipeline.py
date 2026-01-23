@@ -12,19 +12,17 @@ class ValidationPipeline:
     Orchestrates multiple validation components and aggregates results.
     """
     
-    def __init__(self):
-        self.components: List[PipelineComponent] = []
-    
+    def __init__(self, components: List[PipelineComponent] = []):
+        self.components: List[PipelineComponent] = components
+
     def add_component(self, component: PipelineComponent):
         """
         Add a component to the pipeline.
-        
-        Args:
-            component: A PipelineComponent instance to add
         """
         self.components.append(component)
         logger.info(f"Added validation component: {component.component_name if hasattr(component, 'component_name') else type(component).__name__}")
     
+
     def remove_component(self, component_name: str) -> bool:
         """
         Remove a component from the pipeline by name.
