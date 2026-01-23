@@ -56,21 +56,27 @@ class PlainLanguageReportAgent:
         Plain Language Report is returned
         """
 
-        graph = StateGraph(PlainLanguageReportAgentState)
-        graph.add_node("entity_extraction_pipeline", self._extraction_node)
-        graph.add_node("summarization_agent", self._summarization_node)
-        graph.add_node("validation_pipeline", self._validation_node)
-        graph.add_node("refiner_agent", self._refinement_node)
+        # After MVP, we will use the following graph:
+        # graph = StateGraph(PlainLanguageReportAgentState)
+        # graph.add_node("entity_extraction_pipeline", self._extraction_node)
+        # graph.add_node("summarization_agent", self._summarization_node)
+        # graph.add_node("validation_pipeline", self._validation_node)
+        # graph.add_node("refiner_agent", self._refinement_node)
 
-        graph.set_entry_point("entity_extraction_pipeline")
-        graph.add_edge("entity_extraction_pipeline", "summarization_agent")
-        graph.add_edge("summarization_agent", "validation_pipeline")
-        graph.add_conditional_edges(
-            "validation_pipeline",
-            self._validation_gate,
-            {"refiner_agent": "refiner_agent", END: END},
-        )
-        graph.add_edge("refiner_agent", "validation_pipeline")
+        # graph.set_entry_point("entity_extraction_pipeline")
+        # graph.add_edge("entity_extraction_pipeline", "summarization_agent")
+        # graph.add_edge("summarization_agent", "validation_pipeline")
+        # graph.add_conditional_edges(
+        #     "validation_pipeline",
+        #     self._validation_gate,
+        #     {"refiner_agent": "refiner_agent", END: END},
+        # )
+        # graph.add_edge("refiner_agent", "validation_pipeline")
+
+        graph = StateGraph(PlainLanguageReportAgentState)
+        graph.add_node("summarization_agent", self._summarization_node)
+        graph.set_entry_point("summarization_agent")
+        graph.add_edge("summarization_agent", END)
 
         return graph.compile()
 
