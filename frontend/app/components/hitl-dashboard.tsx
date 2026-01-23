@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useMemo } from "react";
-import { ChevronLeft, ChevronRight, User, FileText, Check, AlertCircle } from "lucide-react";
+import { ChevronLeft, ChevronRight, User, FileText, Check, AlertCircle, Lightbulb } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { ReportPanel } from "./report-panel";
 import { ValidationBadges } from "./validation-badges";
@@ -267,6 +267,14 @@ export function HITLDashboard() {
 
           {/* Action Bar */}
           <div className="flex items-center justify-between rounded-lg border-t border-border/50 bg-card p-4">
+            <div className="flex items-center gap-2 rounded-lg bg-primary/5 border border-primary/20 px-3 py-2">
+              <Lightbulb className="h-4 w-4 text-amber-500 shrink-0" />
+              <div className="text-xs">
+                <span className="font-semibold text-foreground">Tip: </span>
+                <span className="text-muted-foreground">Hover over summary sentences to see their source in the original report</span>
+              </div>
+            </div>
+            
             <ActionButtons
               isEditing={isEditing}
               onApprove={handleApprove}
@@ -275,10 +283,6 @@ export function HITLDashboard() {
               onSaveEdit={handleSaveEdit}
               onCancelEdit={handleCancelEdit}
             />
-            
-            <div className="text-xs text-muted-foreground">
-              <span className="text-primary">Tip:</span> Hover over summary sentences to see their source in the original report
-            </div>
           </div>
 
           {/* Entity Extraction Panel */}
