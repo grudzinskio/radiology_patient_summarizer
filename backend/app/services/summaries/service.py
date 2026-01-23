@@ -116,6 +116,37 @@ Return only valid JSON, no additional text."""
         )
 
 
+def _retrieve_medical_definitions(
+    extracted_entities: EntityExtractionResult,
+    medical_report: str
+) -> Optional[dict]:
+    """
+    Step 1.5: RAG Pipeline - Retrieve trusted definitions for medical terms.
+    
+    Takes entities from Step 1 and searches the medical glossary (PLABA/Cochrane datasets)
+    to retrieve standardized plain language definitions.
+    
+    Args:
+        extracted_entities: EntityExtractionResult from entity extraction
+        medical_report: Original medical report for additional context
+    
+    Returns:
+        Dictionary mapping medical terms to their plain language definitions
+    """
+    try:
+        from backend.app.services.summaries.rag.rag_service import RAGService
+        
+        rag_service = RAGService()
+        definitions = rag_service.retrieve_definitions(
+            extracted_entities=extracted_entities,
+            medical_report=medical_report
+        )
+        return definitions if definitions else None
+    except Exception as e:
+        logger.error(f"Error retrieving medical definitions: {str(e)}")
+        return None
+
+
 def _generate_initial_summary(
     medical_report: str,
     extracted_entities: EntityExtractionResult,
@@ -195,9 +226,14 @@ def summarize_report(
     logger.info("Extracting entities from report...")
     extracted_entities = _extract_entities_from_report(medical_report)
     
+    # Step 1.5: RAG Pipeline - Retrieve medical term definitions
+    logger.info("Retrieving medical term definitions from trusted sources...")
+    retrieved_definitions = _retrieve_medical_definitions(
+        extracted_entities=extracted_entities,
+        medical_report=medical_report
+    )
+    
     # Step 2: Generate initial summary
-    # TODO: Integrate with RAG pipeline for retrieved_definitions
-    retrieved_definitions = None
     logger.info("Generating initial summary...")
     initial_summary = _generate_initial_summary(
         medical_report=medical_report,
