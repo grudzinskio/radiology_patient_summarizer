@@ -42,6 +42,7 @@ class BaseLLMClient(ABC):
             if chunk.choices[0].delta.content:
                 yield chunk.choices[0].delta.content
 
+
 class OpenAIClient(BaseLLMClient):
     """
     Client for OpenAI
