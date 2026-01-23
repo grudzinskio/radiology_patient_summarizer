@@ -2,6 +2,7 @@
 
 import { Check, Pencil, X, Send, RotateCcw } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { cn } from "@/lib/utils";
 
 interface ActionButtonsProps {
   isEditing: boolean;
@@ -46,23 +47,35 @@ export function ActionButtons({
     <div className="flex items-center gap-3">
       <Button
         onClick={onApprove}
-        className="bg-emerald-600 text-white hover:bg-emerald-700"
+        className={cn(
+          "rounded-lg bg-emerald-500 px-4 py-2.5 text-white",
+          "hover:bg-emerald-600 transition-colors",
+          "flex items-center gap-2 font-medium shadow-sm"
+        )}
       >
-        <Send className="mr-2 h-4 w-4" />
+        <Send className="h-4 w-4" />
         Approve & Send
       </Button>
       <Button
         onClick={onEdit}
-        className="bg-amber-500 text-white hover:bg-amber-600"
+        className={cn(
+          "rounded-lg bg-amber-500 px-4 py-2.5 text-white",
+          "hover:bg-amber-600 transition-colors",
+          "flex items-center gap-2 font-medium shadow-sm"
+        )}
       >
-        <Pencil className="mr-2 h-4 w-4" />
+        <Pencil className="h-4 w-4" />
         Edit
       </Button>
       <Button
         onClick={onReject}
-        className="bg-red-600 text-white hover:bg-red-700"
+        className={cn(
+          "rounded-lg bg-red-500 px-4 py-2.5 text-white",
+          "hover:bg-red-600 transition-colors",
+          "flex items-center gap-2 font-medium shadow-sm"
+        )}
       >
-        <X className="mr-2 h-4 w-4" />
+        <X className="h-4 w-4" />
         Reject
       </Button>
     </div>

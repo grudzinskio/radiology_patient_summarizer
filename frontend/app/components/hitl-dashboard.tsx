@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { ChevronLeft, ChevronRight, User, FileText, Check, AlertCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { ReportPanel } from "./report-panel";
@@ -8,6 +8,7 @@ import { ValidationBadges } from "./validation-badges";
 import { ActionButtons } from "./action-buttons";
 import { EditPanel } from "./edit-panel";
 import { EntityList } from "./entity-list";
+import { ReportsSidebar, type ReportListItem } from "./reports-sidebar";
 import { cn } from "@/lib/utils";
 
 // Sample data - in production this would come from your API
@@ -63,13 +64,31 @@ Please discuss these findings with your healthcare provider who can give you per
 
 type ReviewStatus = "pending" | "approved" | "rejected";
 
+// Sample reports data - in production this would come from your API
+const sampleReports: ReportListItem[] = [
+  { id: "RPT-89012", patientId: "PAT-89012", patientName: "John Smith", date: "2024-01-15", status: "pending" },
+  { id: "RPT-89011", patientId: "PAT-89011", patientName: "Jane Doe", date: "2024-01-14", status: "approved" },
+  { id: "RPT-89010", patientId: "PAT-89010", patientName: "Robert Johnson", date: "2024-01-14", status: "pending" },
+  { id: "RPT-89009", patientId: "PAT-89009", patientName: "Emily Williams", date: "2024-01-13", status: "rejected" },
+  { id: "RPT-89008", patientId: "PAT-89008", patientName: "Michael Brown", date: "2024-01-13", status: "approved" },
+  { id: "RPT-89007", patientId: "PAT-89007", patientName: "Sarah Davis", date: "2024-01-12", status: "pending" },
+  { id: "RPT-89006", patientId: "PAT-89006", patientName: "David Miller", date: "2024-01-12", status: "pending" },
+  { id: "RPT-89005", patientId: "PAT-89005", patientName: "Lisa Wilson", date: "2024-01-11", status: "approved" },
+];
+
 export function HITLDashboard() {
   const [hoveredSentence, setHoveredSentence] = useState<number | null>(null);
   const [isEditing, setIsEditing] = useState(false);
   const [editedSummary, setEditedSummary] = useState(sampleReport.aiSummary);
-  const [currentReport] = useState(sampleReport);
+  const [selectedReportId, setSelectedReportId] = useState(sampleReport.id);
   const [queuePosition] = useState({ current: 3, total: 12 });
   const [status, setStatus] = useState<ReviewStatus>("pending");
+
+  // Get current report based on selection
+  const currentReport = useMemo(() => {
+    // In production, this would fetch from API based on selectedReportId
+    return sampleReport;
+  }, [selectedReportId]);
 
   const getHighlightedOriginalSentences = (): number[] => {
     if (hoveredSentence === null) return [];
@@ -149,10 +168,10 @@ export function HITLDashboard() {
   }
 
   return (
-    <div className="flex min-h-screen flex-col bg-background">
+    <div className="flex h-screen flex-col bg-background">
       {/* Header */}
       <header className="border-b border-border bg-primary px-6 py-4">
-        <div className="mx-auto flex max-w-7xl items-center justify-between">
+        <div className="flex items-center justify-between">
           <div className="flex items-center gap-4">
             <div className="flex items-center gap-2">
               <FileText className="h-5 w-5 text-primary-foreground" />
@@ -194,9 +213,18 @@ export function HITLDashboard() {
         </div>
       </header>
 
-      {/* Main Content */}
-      <main className="flex-1 px-6 py-6">
-        <div className="mx-auto max-w-7xl space-y-6">
+      {/* Main Content with Sidebar */}
+      <div className="flex flex-1 overflow-hidden">
+        {/* Sidebar */}
+        <ReportsSidebar
+          reports={sampleReports}
+          currentReportId={selectedReportId}
+          onReportSelect={setSelectedReportId}
+        />
+
+        {/* Main Content */}
+        <main className="flex-1 overflow-y-auto px-6 py-6">
+          <div className="mx-auto max-w-7xl space-y-6">
           {/* Validation Status */}
           <div className="flex items-center justify-between rounded-lg border border-border bg-card p-4">
             <div className="flex items-center gap-4">
@@ -238,7 +266,7 @@ export function HITLDashboard() {
           </div>
 
           {/* Action Bar */}
-          <div className="flex items-center justify-between rounded-lg border border-border bg-card p-4">
+          <div className="flex items-center justify-between rounded-lg border-t border-border/50 bg-card p-4">
             <ActionButtons
               isEditing={isEditing}
               onApprove={handleApprove}
@@ -255,8 +283,9 @@ export function HITLDashboard() {
 
           {/* Entity Extraction Panel */}
           <EntityList entities={currentReport.entities} />
-        </div>
-      </main>
+          </div>
+        </main>
+      </div>
     </div>
   );
 }
