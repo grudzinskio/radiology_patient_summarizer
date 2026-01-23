@@ -2,14 +2,18 @@
 RAG (Retrieval-Augmented Generation) Service for medical term definitions.
 
 This service retrieves trusted, standardized definitions for medical terms
-from the PLABA and Cochrane datasets, providing a "Definitions Context"
-for the summarization pipeline.
+using a multi-source approach:
+1. UMLS (Unified Medical Language System) - Authoritative medical definitions
+2. PLABA/Cochrane datasets - Plain language translations
+
+Provides a "Definitions Context" for the summarization pipeline.
 """
 import logging
 import re
 from typing import Dict, List, Optional
 from backend.app.schemas.validation import EntityExtractionResult
 from backend.app.services.summaries.rag.glossary_builder import GlossaryBuilder
+from backend.app.services.summaries.rag.umls_retriever import UMLSRetriever
 
 logger = logging.getLogger(__name__)
 
@@ -18,23 +22,51 @@ class RAGService:
     """
     RAG service that retrieves medical term definitions from trusted sources.
     
+    Uses a hybrid approach:
+    1. UMLS (primary) - Authoritative medical definitions via scispacy
+    2. PLABA/Cochrane datasets (fallback) - Plain language translations
+    
     Trigger: Takes the list of medical terms from Step 1 (Entity Extraction)
-    Action: Searches a trusted "Medical Glossary" built from PLABA/Cochrane datasets
+    Action: Searches UMLS and trusted medical glossary
     Output: A "Definitions Context" dictionary to feed into the next step
     """
     
-    def __init__(self, dataset_path: Optional[str] = None, preferred_sources: Optional[List[str]] = None):
+    def __init__(
+        self,
+        dataset_path: Optional[str] = None,
+        preferred_sources: Optional[List[str]] = None,
+        use_umls: bool = True,
+        umls_min_confidence: float = 0.7
+    ):
         """
         Initialize the RAG service.
         
         Args:
             dataset_path: Path to the merged_plain_language_dataset.csv file
             preferred_sources: Preferred source datasets (default: ['PLABA', 'Cochrane'])
+            use_umls: Whether to use UMLS retrieval (default: True)
+            umls_min_confidence: Minimum confidence for UMLS matches (0-1)
         """
         if preferred_sources is None:
             preferred_sources = ['PLABA', 'Cochrane']
         
         self.preferred_sources = preferred_sources
+        self.use_umls = use_umls
+        self.umls_min_confidence = umls_min_confidence
+        
+        # Initialize UMLS retriever
+        if self.use_umls:
+            try:
+                self.umls_retriever = UMLSRetriever()
+                logger.info("UMLS retriever initialized")
+            except Exception as e:
+                logger.warning(f"Could not initialize UMLS retriever: {str(e)}. Will use dataset only.")
+                self.use_umls = False
+                self.umls_retriever = None
+        else:
+            self.umls_retriever = None
+        
+        # Initialize dataset glossary builder
         self.glossary_builder = GlossaryBuilder(dataset_path=dataset_path)
         self._glossary_loaded = False
     
@@ -83,10 +115,9 @@ class RAGService:
         """
         Retrieve definitions for medical terms found in the extracted entities.
         
-        This is the main RAG pipeline step:
-        - Takes entities from Step 1 (Entity Extraction)
-        - Searches trusted medical glossary
-        - Returns definitions context for Step 2 (Summarization)
+        This is the main RAG pipeline step using hybrid retrieval:
+        1. UMLS (primary) - Authoritative medical definitions
+        2. PLABA/Cochrane dataset (fallback) - Plain language translations
         
         Args:
             extracted_entities: EntityExtractionResult from Step 1
@@ -96,7 +127,7 @@ class RAGService:
         Returns:
             Dictionary mapping medical terms to their plain language definitions
         """
-        self._ensure_glossary_loaded()
+        definitions = {}
         
         # Collect all potential terms from entities
         all_terms = []
@@ -116,11 +147,6 @@ class RAGService:
             terms = self._extract_medical_terms(anatomy)
             all_terms.extend(terms)
         
-        # Also extract terms from the original report if provided
-        if medical_report:
-            report_terms = self._extract_medical_terms(medical_report)
-            all_terms.extend(report_terms)
-        
         # Remove duplicates while preserving order
         unique_terms = []
         seen = set()
@@ -132,29 +158,84 @@ class RAGService:
         
         logger.info(f"Retrieving definitions for {len(unique_terms)} unique medical terms")
         
-        # Search for definitions
-        definitions = self.glossary_builder.search_terms(unique_terms, threshold=75)
+        # Step 1: Try UMLS retrieval (authoritative source)
+        umls_definitions = {}
+        if self.use_umls and self.umls_retriever and medical_report:
+            try:
+                # Use the full medical report for better context
+                umls_results = self.umls_retriever.retrieve_from_text(
+                    medical_report,
+                    min_confidence=self.umls_min_confidence,
+                    max_results=max_definitions * 2  # Get more, then filter
+                )
+                
+                # Format UMLS results for prompt
+                umls_definitions = self.umls_retriever.format_for_prompt(umls_results)
+                logger.info(f"Retrieved {len(umls_definitions)} definitions from UMLS")
+            except Exception as e:
+                logger.warning(f"UMLS retrieval failed: {str(e)}. Falling back to dataset.")
         
-        # If we have fewer definitions than requested, try searching the dataset directly
+        # Step 2: Fill gaps with dataset (plain language translations)
+        self._ensure_glossary_loaded()
+        dataset_definitions = {}
+        
+        # Find terms that need definitions
+        terms_needing_definitions = set(unique_terms)
+        if umls_definitions:
+            # Remove terms we already have from UMLS
+            terms_needing_definitions -= set(umls_definitions.keys())
+        
+        if terms_needing_definitions:
+            dataset_definitions = self.glossary_builder.search_terms(
+                list(terms_needing_definitions),
+                threshold=75
+            )
+            logger.info(f"Retrieved {len(dataset_definitions)} definitions from dataset")
+        
+        # Step 3: If still missing, try direct dataset search
         if len(definitions) < max_definitions and medical_report:
-            # Try to find contextual matches in the dataset
-            for term in unique_terms[:10]:  # Try top 10 terms
-                if term not in definitions:
-                    records = self.glossary_builder.get_dataset_records(term, limit=1)
-                    if records:
-                        # Use the plain language text as definition
-                        definitions[term] = records[0].get('plain_language_text', '')
+            missing_terms = set(unique_terms) - set(umls_definitions.keys()) - set(dataset_definitions.keys())
+            for term in list(missing_terms)[:10]:  # Try top 10 missing terms
+                records = self.glossary_builder.get_dataset_records(term, limit=1)
+                if records:
+                    dataset_definitions[term] = records[0].get('plain_language_text', '')
         
-        # Limit to max_definitions
+        # Step 4: Combine results (UMLS first, then dataset)
+        # Prioritize UMLS for authoritative definitions
+        definitions.update(umls_definitions)
+        
+        # Add dataset definitions for terms not in UMLS
+        for term, definition in dataset_definitions.items():
+            if term not in definitions:
+                definitions[term] = definition
+        
+        # Step 5: Limit and prioritize
         if len(definitions) > max_definitions:
-            # Keep the most relevant ones (prioritize exact matches from findings)
+            # Prioritize: findings > anatomy > other terms
             prioritized = {}
+            
+            # First: findings from UMLS or dataset
             for finding in extracted_entities.findings:
                 finding_lower = finding.lower().strip()
                 if finding_lower in definitions:
                     prioritized[finding] = definitions[finding_lower]
             
-            # Add remaining definitions
+            # Second: anatomy terms
+            for anatomy in extracted_entities.anatomy:
+                anatomy_lower = anatomy.lower().strip()
+                if anatomy_lower in definitions and anatomy_lower not in prioritized:
+                    prioritized[anatomy] = definitions[anatomy_lower]
+            
+            # Third: remaining UMLS definitions (authoritative)
+            for term, definition in definitions.items():
+                if len(prioritized) >= max_definitions:
+                    break
+                if term not in prioritized:
+                    # Check if this came from UMLS (prioritize authoritative sources)
+                    if term in umls_definitions:
+                        prioritized[term] = definition
+            
+            # Fourth: remaining dataset definitions
             for term, definition in definitions.items():
                 if len(prioritized) >= max_definitions:
                     break
@@ -163,6 +244,7 @@ class RAGService:
             
             definitions = prioritized
         
-        logger.info(f"Retrieved {len(definitions)} medical term definitions")
+        logger.info(f"Retrieved {len(definitions)} total medical term definitions "
+                   f"(UMLS: {len(umls_definitions)}, Dataset: {len(dataset_definitions)})")
         
         return definitions
