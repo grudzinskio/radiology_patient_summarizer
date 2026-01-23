@@ -4,3 +4,4 @@ fastapi
 textstat
 rapidfuzz
 pydantic
+pandas
