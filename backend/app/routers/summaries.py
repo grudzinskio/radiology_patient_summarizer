@@ -1,6 +1,6 @@
 from fastapi import APIRouter
 
-from backend.services import summaries_service
+from backend.app.services.summaries import service as summaries_service
 from backend.app.schemas.summaries import (
     ApproveRequest,
     ApproveResponse,

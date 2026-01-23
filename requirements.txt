@@ -1,3 +1,6 @@
 openai
 python-dotenv
 fastapi
+textstat
+rapidfuzz
+pydantic
