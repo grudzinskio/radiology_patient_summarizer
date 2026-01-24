@@ -115,11 +115,11 @@ class PlainLanguageReportAgent:
         
         # Initialize RAG service
         if dataset_path is None:
-            # Try to find dataset in repo root
+            # Try to find dataset in data folder
             # Current file: backend/src/services/summaries/plain_language_report_agent.py
             # 5 parents up to reach hack-4-health-2026-radiohead
             repo_root = Path(__file__).parent.parent.parent.parent.parent
-            dataset_path = str(repo_root / "merged_plain_language_dataset.csv")
+            dataset_path = str(repo_root / "data" / "merged_plain_language_dataset.csv")
         
         self.rag_service = RAGService(dataset_path=dataset_path)
         self.graph = self._build_agent_graph()

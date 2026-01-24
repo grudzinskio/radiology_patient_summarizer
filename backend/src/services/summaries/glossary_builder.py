@@ -25,15 +25,15 @@ class GlossaryBuilder:
                          If None, tries to find it in the repo root.
         """
         if dataset_path is None:
-            # Try to find dataset in repo root
+            # Try to find dataset in data folder
             # Current file: backend/src/services/summaries/glossary_builder.py
             # 5 parents up to reach hack-4-health-2026-radiohead
             repo_root = Path(__file__).parent.parent.parent.parent.parent
-            dataset_path = repo_root / "merged_plain_language_dataset.csv"
+            dataset_path = repo_root / "data" / "merged_plain_language_dataset.csv"
             
             # Fallback for different working environments
             if not dataset_path.exists():
-                dataset_path = Path("merged_plain_language_dataset.csv")
+                dataset_path = Path("data") / "merged_plain_language_dataset.csv"
         
         self.dataset_path = Path(dataset_path).absolute()
         self.glossary: Dict[str, str] = {}
