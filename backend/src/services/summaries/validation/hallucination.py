@@ -44,7 +44,7 @@ Return only valid JSON, no additional text."""
                 {"role": "user", "content": prompt}
             ]
             
-            response = self.llm_client.generate(messages, temperature=0.1)
+            response = self.llm_client.generate(messages)
             
             # Clean response - remove markdown code blocks if present
             response = response.strip()

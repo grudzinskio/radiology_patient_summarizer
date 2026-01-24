@@ -1,8 +1,14 @@
 from typing import Any, TypedDict
 from pathlib import Path
+import time
+
 
 from langgraph.graph import END, StateGraph
-from schemas.validation import EntityExtractionResult, ValidationInput
+from schemas.validation import EntityExtractionResult, ValidationInput, ValidationReport
+import logging
+
+logger = logging.getLogger(__name__)
+
 from schemas.provenance import ProvenanceReport, SummaryWithProvenance
 from services.summaries.entity_extraction.pipeline import EntityExtractionPipeline
 from services.summaries.summarizer import SummarizerAgent
@@ -15,6 +21,16 @@ from services.summaries.validation.entity_matching import EntityMatchingComponen
 from services.summaries.validation.provenance import ProvenanceComponent
 from services.summaries.refiner import RefinerAgent
 from services.summaries.rag_service import RAGService
+
+class ChainOfThoughtStep(TypedDict):
+    """
+    Represents a single step in the agent's reasoning process.
+    """
+    step: str
+    description: str
+    details: dict[str, Any] | None
+    timestamp: float
+
 
 class PlainLanguageReportAgentState(TypedDict):
     """
@@ -41,6 +57,13 @@ class PlainLanguageReportAgentState(TypedDict):
     # Validation results
     validation_passed: bool
     validation_reasons: list[str]
+    validation_pipeline_result: ValidationReport | None
+
+
+    
+    # Reasoning trace
+    chain_of_thought: list[ChainOfThoughtStep]
+
 
 
 class PlainLanguageReportAgent:
@@ -62,6 +85,8 @@ class PlainLanguageReportAgent:
             enable_provenance: Whether to enable provenance tracking (default: True)
         """
         self.enable_provenance = enable_provenance
+        logger.info(f"Initializing Agent (provenance={enable_provenance})...")
+
         """
         Initialize the plain language report agent.
         
@@ -72,7 +97,9 @@ class PlainLanguageReportAgent:
         self.entity_extraction_pipeline = EntityExtractionPipeline()
         self.summarization_agent = SummarizerAgent()
         
+        logger.info("Initializing Validation Pipeline...")
         # Build validation pipeline with provenance component
+
         validation_components = [
             ReadabilityComponent(),
             SafetyComponent(),
@@ -90,11 +117,15 @@ class PlainLanguageReportAgent:
         # Initialize RAG service
         if dataset_path is None:
             # Try to find dataset in repo root
-            repo_root = Path(__file__).parent.parent.parent.parent.parent.parent
+            # Current file: backend/src/services/summaries/plain_language_report_agent.py
+            # 5 parents up to reach hack-4-health-2026-radiohead
+            repo_root = Path(__file__).parent.parent.parent.parent.parent
             dataset_path = str(repo_root / "merged_plain_language_dataset.csv")
         
         self.rag_service = RAGService(dataset_path=dataset_path)
         self.graph = self._build_agent_graph()
+        logger.info("Agent initialization complete.")
+
 
     def _create_initial_state(
         self, 
@@ -115,7 +146,12 @@ class PlainLanguageReportAgent:
             overall_confidence=0.0,
             validation_passed=False,
             validation_reasons=[],
+            validation_pipeline_result=None,
+
+            chain_of_thought=[],
         )
+
+
 
     def run(
         self, 
@@ -191,28 +227,77 @@ class PlainLanguageReportAgent:
 
     def _extraction_node(self, state: PlainLanguageReportAgentState) -> dict[str, Any]:
         """Extract medical entities from the report."""
-        raw_terms = self.entity_extraction_pipeline.extract_entities(state["medical_report"])
+        logger.info("Starting Entity Extraction node")
+        
+        try:
+            raw_terms = self.entity_extraction_pipeline.extract_entities(state["medical_report"])
+        except Exception as e:
+            logger.error(f"Error in entity extraction: {e}")
+            raw_terms = []
+
         findings = [
             term.get("original_text", "") for term in raw_terms if term.get("original_text")
         ] if isinstance(raw_terms, list) else []
+
         extracted_entities = EntityExtractionResult(findings=findings)
-        return {"extracted_entities": extracted_entities}
+        
+        # Log the extraction step
+        current_log = state.get("chain_of_thought", [])
+        log_step = ChainOfThoughtStep(
+            step="Entity Extraction",
+            description=f"Identified {len(findings)} medical entities from the report.",
+            details={
+                "found_entities_count": len(findings),
+                "entities_sample": findings[:5] if findings else []
+            },
+            timestamp=time.time()
+        )
+        
+        return {
+            "extracted_entities": extracted_entities, 
+            "chain_of_thought": current_log + [log_step]
+        }
+
 
     def _rag_retrieval_node(self, state: PlainLanguageReportAgentState) -> dict[str, Any]:
         """
         Retrieve medical term definitions using RAG service.
         """
+        logger.info("Starting RAG Retrieval node")
         extracted_entities = state["extracted_entities"] or EntityExtractionResult()
+
+        
+        # Log intent before action
+        initial_log = state.get("chain_of_thought", [])
+        
         retrieved_definitions = self.rag_service.retrieve_definitions(
             extracted_entities=extracted_entities,
             medical_report=state["medical_report"],
             max_definitions=20
         )
-        return {"retrieved_definitions": retrieved_definitions}
+        
+        # Log the retrieval step
+        log_step = ChainOfThoughtStep(
+            step="Knowledge Retrieval",
+            description=f"Retrieved definitions for {len(retrieved_definitions)} medical terms to aid understanding.",
+            details={
+                "terms_defined": list(retrieved_definitions.keys()),
+                "retrieval_count": len(retrieved_definitions)
+            },
+            timestamp=time.time()
+        )
+        
+        return {
+            "retrieved_definitions": retrieved_definitions,
+            "chain_of_thought": initial_log + [log_step]
+        }
 
     def _summarization_node(self, state: PlainLanguageReportAgentState) -> dict[str, Any]:
         """Generate a patient-friendly summary with provenance tracking."""
+        logger.info("Starting Summarization node")
         extracted_entities = state["extracted_entities"] or EntityExtractionResult()
+
+        current_log = state.get("chain_of_thought", [])
         
         if self.enable_provenance:
             # Use provenance-aware summarization
@@ -221,10 +306,23 @@ class PlainLanguageReportAgent:
                 extracted_entities=extracted_entities,
                 retrieved_definitions=state["retrieved_definitions"],
             )
+            
+            log_step = ChainOfThoughtStep(
+                step="Summarization",
+                description="Generated initial patient-friendly summary with provenance citations.",
+                details={
+                    "mode": "provenance",
+                    "sentence_count": len(summary_with_prov.statements),
+                    "confidence_score": summary_with_prov.provenance.overall_confidence if summary_with_prov.provenance else 0.0
+                },
+                timestamp=time.time()
+            )
+            
             return {
                 "plain_language_report": summary_with_prov.plain_language_report,
                 "summary_with_provenance": summary_with_prov,
                 "provenance_report": summary_with_prov.provenance,
+                "chain_of_thought": current_log + [log_step]
             }
         else:
             # Standard summarization without provenance
@@ -233,10 +331,25 @@ class PlainLanguageReportAgent:
                 extracted_entities=extracted_entities,
                 retrieved_definitions=state["retrieved_definitions"],
             )
-            return {"plain_language_report": plain_language_report}
+            
+            log_step = ChainOfThoughtStep(
+                step="Summarization",
+                description="Generated initial patient-friendly summary (standard mode).",
+                details={
+                    "mode": "standard",
+                    "length_chars": len(plain_language_report)
+                },
+                timestamp=time.time()
+            )
+            
+            return {
+                "plain_language_report": plain_language_report, 
+                "chain_of_thought": current_log + [log_step]
+            }
 
     def _validation_node(self, state: PlainLanguageReportAgentState) -> dict[str, Any]:
         """Run validation checks on the summary."""
+        logger.info("Starting Validation node")
         validation_input = ValidationInput(
             original_report=state["medical_report"],
             extracted_entities=state["extracted_entities"] or EntityExtractionResult(),
@@ -261,16 +374,38 @@ class PlainLanguageReportAgent:
             provenance_report = state["provenance_report"]
             overall_confidence = provenance_report.overall_confidence
         
+        # Log validation results
+        current_log = state.get("chain_of_thought", [])
+        
+        if report.overall_passed:
+            description = "Validation passed. Summary meets all safety and accuracy criteria."
+        else:
+            description = f"Validation failed with {len(report.get_all_errors())} issues. Initiating refinement."
+            
+        log_step = ChainOfThoughtStep(
+            step="Validation",
+            description=description,
+            details={
+                "passed": report.overall_passed,
+                "overall_confidence": overall_confidence,
+                "failed_components": [r.component_name for r in report.get_failed_components()],
+                "error_count": len(report.get_all_errors())
+            },
+            timestamp=time.time()
+        )
+        
         return {
             "validation_pipeline_result": report,
             "validation_passed": report.overall_passed,
             "validation_reasons": report.get_all_errors(),
             "provenance_report": provenance_report,
             "overall_confidence": overall_confidence,
+            "chain_of_thought": current_log + [log_step]
         }
 
     def _refinement_node(self, state: PlainLanguageReportAgentState) -> dict[str, Any]:
         """Refine the summary based on validation feedback."""
+        logger.info("Starting Refinement node due to validation failure")
         plain_language_report = self.refiner_agent.refine_summary(
             original_report=state["medical_report"],
             extracted_entities=state["extracted_entities"] or EntityExtractionResult(),
@@ -282,9 +417,22 @@ class PlainLanguageReportAgent:
         # Re-create provenance from refined summary
         summary_with_prov = SummaryWithProvenance.from_text(plain_language_report)
         
+        # Log refinement
+        current_log = state.get("chain_of_thought", [])
+        log_step = ChainOfThoughtStep(
+            step="Refinement",
+            description="Refined summary to address validation errors.",
+            details={
+                "previous_errors": [r.component_name for r in state["validation_pipeline_result"].get_failed_components()],
+                "action": "rewrite_and_revalidate"
+            },
+            timestamp=time.time()
+        )
+        
         return {
             "plain_language_report": plain_language_report,
             "summary_with_provenance": summary_with_prov,
             "provenance_report": summary_with_prov.provenance,
+            "chain_of_thought": current_log + [log_step]
         }
 

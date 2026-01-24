@@ -7,6 +7,10 @@ from uuid import uuid4
 from services.summaries.plain_language_report_agent import PlainLanguageReportAgent
 from schemas.provenance import ProvenanceReport
 from schemas.validation import EntityExtractionResult
+import logging
+
+logger = logging.getLogger(__name__)
+
 
 
 @dataclass
@@ -37,8 +41,15 @@ def summarize_report(
     
     Returns a dictionary containing the summary, validation results, and explainability data.
     """
+    logger.info(f"Received request to summarize report (length: {len(medical_report)} chars)")
+    
+    logger.info("Initializing PlainLanguageReportAgent...")
     agent = PlainLanguageReportAgent(enable_provenance=True)
+    
+    logger.info("Running agent...")
     state = agent.run(medical_report, patient_id=patient_id, report_id=report_id)
+    logger.info("Agent execution completed.")
+
 
     plain_language_report = state.get("plain_language_report") or ""
     validation_passed = _validation_passed(state)

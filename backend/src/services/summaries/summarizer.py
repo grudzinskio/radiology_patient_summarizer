@@ -114,7 +114,7 @@ class SummarizerAgent:
         ]
         
         try:
-            response = self.llm_client.generate(messages, temperature=0.3)
+            response = self.llm_client.generate(messages)
             logger.info(f"Generated provenance response (length: {len(response)} chars)")
             
             # Parse JSON response
@@ -148,12 +148,26 @@ class SummarizerAgent:
             response = response[:-3]
         response = response.strip()
         
-        try:
-            data = json.loads(response)
-        except json.JSONDecodeError as e:
-            logger.warning(f"Failed to parse JSON response: {e}. Using fallback parsing.")
-            # Fallback: treat entire response as plain text
-            return SummaryWithProvenance.from_text(response)
+        # Try to find JSON block if it's buried in other text
+        if "{" in response and "}" in response:
+            try:
+                start_idx = response.find("{")
+                end_idx = response.rfind("}") + 1
+                json_part = response[start_idx:end_idx]
+                data = json.loads(json_part)
+            except json.JSONDecodeError:
+                # Fallback to standard cleaning
+                try:
+                    data = json.loads(response)
+                except json.JSONDecodeError as e:
+                    logger.warning(f"Failed to parse JSON response: {e}. Using fallback parsing.")
+                    return SummaryWithProvenance.from_text(response)
+        else:
+            try:
+                data = json.loads(response)
+            except json.JSONDecodeError as e:
+                logger.warning(f"Failed to parse JSON response: {e}. Using fallback parsing.")
+                return SummaryWithProvenance.from_text(response)
         
         # Extract statements and build provenance
         statements_data = data.get("statements", [])
