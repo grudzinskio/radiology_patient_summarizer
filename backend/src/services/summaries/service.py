@@ -25,7 +25,9 @@ def summarize_report(*, medical_report: str, patient_id: str | None = None, repo
     state = agent.run(medical_report, patient_id=patient_id, report_id=report_id)
 
     plain_language_report = state.get("plain_language_report") or ""
-    status = "approved" if _validation_passed(state) else "draft"
+    validation_passed = _validation_passed(state)
+    status = "approved" if validation_passed else "draft"
+    validation_reasons = state.get("validation_reasons") or []
 
     summary_id = str(uuid4())
     _SUMMARY_STORE[summary_id] = SummaryRecord(
@@ -40,6 +42,8 @@ def summarize_report(*, medical_report: str, patient_id: str | None = None, repo
         "summary_id": summary_id,
         "plain_language_report": plain_language_report,
         "status": status,
+        "validation_passed": validation_passed,
+        "validation_notes": validation_reasons,
     }
 
 

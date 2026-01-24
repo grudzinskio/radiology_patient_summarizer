@@ -7,13 +7,33 @@ import scispacy
 
 logger = logging.getLogger(__name__)
 
+_NLP_INSTANCE = None
+
 class SpacyComponent():
     """
     Component for extracting entities from a text using Spacy.
+    Uses a singleton pattern for the heavy NLP model.
     """
+    @classmethod
+    def load_model(cls):
+        """Explicitly load the model (e.g., at startup)."""
+        global _NLP_INSTANCE
+        if _NLP_INSTANCE is None:
+            logger.info("Loading Spacy model...")
+            nlp = spacy.load("en_core_sci_sm")
+            nlp.add_pipe("scispacy_linker", config={"resolve_abbreviations": True, "linker_name": "umls"})
+            _NLP_INSTANCE = nlp
+            logger.info("Spacy model loaded successfully.")
+        return _NLP_INSTANCE
+
     def __init__(self):
-        self.nlp = spacy.load("en_core_sci_sm")
-        self.nlp.add_pipe("scispacy_linker", config={"resolve_abbreviations": True, "linker_name": "umls"})
+        global _NLP_INSTANCE
+        if _NLP_INSTANCE is None:
+            self.nlp = self.load_model()
+        else:
+            self.nlp = _NLP_INSTANCE
+        
+        # Linker is already in the pipeline
         self.linker = self.nlp.get_pipe("scispacy_linker")
 
 

@@ -17,6 +17,8 @@ class SummarizeResponse(BaseModel):
     summary_id: str
     plain_language_report: str
     status: Literal["draft", "approved"]
+    validation_passed: bool = Field(default=True, description="Whether validation checks passed.")
+    validation_notes: list[str] = Field(default_factory=list, description="List of validation warnings or errors.")
 
 
 class ApproveRequest(BaseModel):
