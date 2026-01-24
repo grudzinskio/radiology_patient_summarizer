@@ -1,6 +1,6 @@
 from typing import List
 import logging
-from services.summaries.entity_extraction.spacy import SpacyComponent
+from backend.src.services.summaries.entity_extraction.spacy import SpacyExtractor
 
 logger = logging.getLogger(__name__)
 
@@ -11,18 +11,18 @@ class EntityExtractionPipeline:
     Currently utilizes the SpacyComponent to extract technical terms from the report and link them to the UMLS for LLM context building.
     """
     def __init__(self):
-        self.spacy_component = SpacyComponent()
+        self.spacy_component = SpacyExtractor()
     
     def extract_entities(self, report: str):
         """
         Extract entities from the report through the pipeline.
         """
-        extracted_entities = self.spacy_component.extract_technical_terms(report)
+        extracted_entities = self.spacy_component.extract_entities(report)
         return extracted_entities
 
-    def build_simplification_context(self, report: str):
+    def get_section_summary(self, report: str):
         """
         Build context for an LLM to simplify the report.
         """
-        simplified_context = self.spacy_component.build_simplification_context(report)
+        simplified_context = self.spacy_component.get_section_summary(report)
         return simplified_context
