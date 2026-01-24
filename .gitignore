@@ -31,3 +31,4 @@ Thumbs.db
 
 # Python version files (pyenv)
 .python-version
+backend/app/services/summaries/entity_extraction/extractors/spacy_extractor.py
