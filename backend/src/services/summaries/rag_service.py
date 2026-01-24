@@ -4,7 +4,7 @@ RAG (Retrieval-Augmented Generation) Service for medical term definitions.
 This service retrieves trusted, standardized definitions for medical terms
 using a multi-source approach:
 1. UMLS (Unified Medical Language System) - Authoritative medical definitions
-   (Reuses SpacyComponent from entity_extraction to avoid duplication)
+   (Reuses SpacyExtractor from entity_extraction to avoid duplication)
 2. PLABA/Cochrane datasets - Plain language translations
 
 Provides a "Definitions Context" for the summarization pipeline.
@@ -14,7 +14,7 @@ import re
 from typing import Dict, List, Optional
 from schemas.validation import EntityExtractionResult
 from services.summaries.glossary_builder import GlossaryBuilder
-from services.summaries.entity_extraction.spacy import SpacyComponent
+from services.summaries.entity_extraction.spacy import SpacyExtractor
 
 logger = logging.getLogger(__name__)
 
@@ -24,11 +24,11 @@ class RAGService:
     RAG service that retrieves medical term definitions from trusted sources.
     
     Uses a hybrid approach:
-    1. UMLS (primary) - Authoritative medical definitions via SpacyComponent (reuses existing component)
+    1. UMLS (primary) - Authoritative medical definitions via SpacyExtractor (reuses existing component)
     2. PLABA/Cochrane datasets (fallback) - Plain language translations
     
     Trigger: Takes the list of medical terms from Step 1 (Entity Extraction)
-    Action: Searches UMLS (via SpacyComponent) and trusted medical glossary
+    Action: Searches UMLS (via SpacyExtractor) and trusted medical glossary
     Output: A "Definitions Context" dictionary to feed into the next step
     """
     
@@ -55,13 +55,13 @@ class RAGService:
         self.use_umls = use_umls
         self.umls_min_confidence = umls_min_confidence
         
-        # Reuse SpacyComponent from entity_extraction (avoids duplication)
+        # Reuse SpacyExtractor from entity_extraction (avoids duplication)
         if self.use_umls:
             try:
-                self.spacy_component = SpacyComponent()
-                logger.info("UMLS retriever initialized (using SpacyComponent)")
+                self.spacy_component = SpacyExtractor()
+                logger.info("UMLS retriever initialized (using SpacyExtractor)")
             except Exception as e:
-                logger.warning(f"Could not initialize SpacyComponent: {str(e)}. Will use dataset only.")
+                logger.warning(f"Could not initialize SpacyExtractor: {str(e)}. Will use dataset only.")
                 self.use_umls = False
                 self.spacy_component = None
         else:
@@ -117,7 +117,7 @@ class RAGService:
         Retrieve definitions for medical terms found in the extracted entities.
         
         This is the main RAG pipeline step using hybrid retrieval:
-        1. UMLS (primary) - Authoritative medical definitions via SpacyComponent
+        1. UMLS (primary) - Authoritative medical definitions via SpacyExtractor
         2. PLABA/Cochrane dataset (fallback) - Plain language translations
         
         Args:
@@ -159,11 +159,11 @@ class RAGService:
         
         logger.info(f"Retrieving definitions for {len(unique_terms)} unique medical terms")
         
-        # Step 1: Try UMLS retrieval (authoritative source) - reuse SpacyComponent
+        # Step 1: Try UMLS retrieval (authoritative source) - reuse SpacyExtractor
         umls_definitions = {}
         if self.use_umls and self.spacy_component and medical_report:
             try:
-                # Use SpacyComponent to extract UMLS definitions (reuses existing component)
+                # Use SpacyExtractor to extract UMLS definitions (reuses existing component)
                 umls_terms = self.spacy_component.extract_technical_terms(medical_report)
                 
                 # Filter by confidence and format for prompt
@@ -185,7 +185,7 @@ class RAGService:
                         if len(umls_definitions) >= max_definitions * 2:
                             break
                 
-                logger.info(f"Retrieved {len(umls_definitions)} definitions from UMLS (via SpacyComponent)")
+                logger.info(f"Retrieved {len(umls_definitions)} definitions from UMLS (via SpacyExtractor)")
             except Exception as e:
                 logger.warning(f"UMLS retrieval failed: {str(e)}. Falling back to dataset.")
         

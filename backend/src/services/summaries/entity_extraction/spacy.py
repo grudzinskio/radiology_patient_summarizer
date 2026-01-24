@@ -35,7 +35,7 @@ class ClinicalEntity:
     aliases: list[str]
 
 
-class SpacyComponent:
+class SpacyExtractor:
     """
     Component for extracting clinical entities from radiology reports.
     Uses a singleton pattern for the heavy NLP model.
@@ -77,7 +77,7 @@ class SpacyComponent:
                 "linker_name": "mesh"
             })
 
-            logger.info("SpacyComponent model loaded successfully.")
+            logger.info("SpacyExtractor model loaded successfully.")
             _NLP_INSTANCE = nlp
         return _NLP_INSTANCE
 

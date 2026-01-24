@@ -1,6 +1,6 @@
 from typing import List
 import logging
-from backend.src.services.summaries.entity_extraction.spacy import SpacyExtractor
+from .spacy import SpacyExtractor
 
 logger = logging.getLogger(__name__)
 
@@ -8,7 +8,7 @@ class EntityExtractionPipeline:
     """
     Pipeline for extracting technical terms from a medical report
     
-    Currently utilizes the SpacyComponent to extract technical terms from the report and link them to the UMLS for LLM context building.
+    Currently utilizes the SpacyExtractor to extract technical terms from the report and link them to the UMLS for LLM context building.
     """
     def __init__(self):
         self.spacy_component = SpacyExtractor()
