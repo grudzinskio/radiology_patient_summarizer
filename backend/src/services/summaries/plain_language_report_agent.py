@@ -58,7 +58,7 @@ class PlainLanguageReportAgent:
 
     @staticmethod
     def _validation_gate(state: PlainLanguageReportAgentState) -> str:
-        return END if state["validation_passed"] else "refine"
+        return END if state["validation_passed"] else "refiner_agent"
 
     def _build_agent_graph(self):
         """
