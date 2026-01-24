@@ -21,6 +21,7 @@ from services.summaries.validation.entity_matching import EntityMatchingComponen
 from services.summaries.validation.provenance import ProvenanceComponent
 from services.summaries.refiner import RefinerAgent
 from services.summaries.rag_service import RAGService
+from services.summaries.validation.config import MAX_RETRY_ATTEMPTS
 
 class ChainOfThoughtStep(TypedDict):
     """
@@ -58,7 +59,7 @@ class PlainLanguageReportAgentState(TypedDict):
     validation_passed: bool
     validation_reasons: list[str]
     validation_pipeline_result: ValidationReport | None
-
+    retry_count: int
 
     
     # Reasoning trace
@@ -147,9 +148,11 @@ class PlainLanguageReportAgent:
             validation_passed=False,
             validation_reasons=[],
             validation_pipeline_result=None,
+            retry_count=0,
 
             chain_of_thought=[],
         )
+
 
 
 
@@ -176,7 +179,15 @@ class PlainLanguageReportAgent:
     @staticmethod
     def _validation_gate(state: PlainLanguageReportAgentState) -> str:
         """Gate function to determine if refinement is needed."""
-        return END if state["validation_passed"] else "refiner_agent"
+        if state["validation_passed"]:
+            return END
+        
+        if state["retry_count"] >= MAX_RETRY_ATTEMPTS:
+            logger.warning(f"Max retries ({MAX_RETRY_ATTEMPTS}) reached. Retaining current summary despite validation errors.")
+            return END
+            
+        return "refiner_agent"
+
 
     def _build_agent_graph(self):
         """
@@ -380,7 +391,14 @@ class PlainLanguageReportAgent:
         if report.overall_passed:
             description = "Validation passed. Summary meets all safety and accuracy criteria."
         else:
+            failed_components = report.get_failed_components()
+            failed_names = [r.component_name for r in failed_components]
             description = f"Validation failed with {len(report.get_all_errors())} issues. Initiating refinement."
+            
+            logger.warning(f"Validation FAILED ({len(failed_components)} checks failed).")
+            for cmp in failed_components:
+                logger.warning(f"  - {cmp.component_name}: {cmp.error_messages}")
+
             
         log_step = ChainOfThoughtStep(
             step="Validation",
@@ -405,7 +423,9 @@ class PlainLanguageReportAgent:
 
     def _refinement_node(self, state: PlainLanguageReportAgentState) -> dict[str, Any]:
         """Refine the summary based on validation feedback."""
-        logger.info("Starting Refinement node due to validation failure")
+        current_retry = state.get("retry_count", 0) + 1
+        logger.info(f"Starting Refinement node due to validation failure (Attempt {current_retry}/{MAX_RETRY_ATTEMPTS})")
+        
         plain_language_report = self.refiner_agent.refine_summary(
             original_report=state["medical_report"],
             extracted_entities=state["extracted_entities"] or EntityExtractionResult(),
@@ -433,6 +453,8 @@ class PlainLanguageReportAgent:
             "plain_language_report": plain_language_report,
             "summary_with_provenance": summary_with_prov,
             "provenance_report": summary_with_prov.provenance,
-            "chain_of_thought": current_log + [log_step]
+            "chain_of_thought": current_log + [log_step],
+            "retry_count": current_retry
         }
+
 
