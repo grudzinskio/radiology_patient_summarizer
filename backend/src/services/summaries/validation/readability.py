@@ -3,7 +3,7 @@ Readability Component - Check C: Readability Score
 Validates that the summary meets readability requirements (6th-8th grade level).
 """
 import textstat
-from services.summaries.validation.pipeline_components.pipeline_component import PipelineComponent
+from services.summaries.validation.base import PipelineComponent
 from schemas.validation import ValidationInput, ValidationResult
 from services.summaries.validation.config import READABILITY_MAX_GRADE_LEVEL
 

@@ -1,4 +1,4 @@
-from services.summaries.validation.pipeline_components.pipeline_component import PipelineComponent
+from services.summaries.validation.base import PipelineComponent
 from schemas.validation import ValidationInput, ValidationReport, ValidationResult
 from typing import Any, Optional, List
 import logging

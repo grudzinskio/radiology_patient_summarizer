@@ -9,7 +9,7 @@ from schemas.validation import (
     ValidationReport,
     EntityExtractionResult,
 )
-from services.summaries.validation.validation_pipeline import ValidationPipeline
+from services.summaries.validation.pipeline import ValidationPipeline
 from services.summaries.validation.config import MAX_RETRY_ATTEMPTS
 from utils.clients.llm_clients import BaseLLMClient, OpenAIClient
 
