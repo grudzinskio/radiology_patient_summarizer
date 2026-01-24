@@ -245,7 +245,7 @@ class PlainLanguageReportAgent:
             raw_terms = []
 
         findings = [
-            term.get("original_text", "") for term in raw_terms if term.get("original_text")
+            term.original_text for term in raw_terms if hasattr(term, 'original_text') and term.original_text
         ] if isinstance(raw_terms, list) else []
 
         extracted_entities = EntityExtractionResult(findings=findings)
