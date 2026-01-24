@@ -105,31 +105,70 @@ def _build_sentence_mapping(state: dict[str, Any]) -> list[dict[str, Any]]:
     """
     Build sentence mapping from provenance report for frontend highlight-on-hover.
     
+    Maps character spans from provenance to sentence indices in the original report,
+    matching the frontend's sentence splitting logic.
+    
     Returns a list of mappings: {summary: int, original: List[int], confidence: float}
     """
+    import re
+    
     provenance_report = state.get("provenance_report")
-    if not provenance_report:
+    medical_report = state.get("medical_report", "")
+    
+    if not provenance_report or not medical_report:
         return []
     
-    # Use the ProvenanceReport's built-in conversion method if available
-    if hasattr(provenance_report, 'to_sentence_mapping_format'):
-        base_mappings = provenance_report.to_sentence_mapping_format()
-    else:
-        base_mappings = []
+    # 1. Split original report into sentences (matching frontend logic)
+    # Frontend: content.split(/(?<=[.!?])\s+/).filter(Boolean)
+    sentences = [s for s in re.split(r'(?<=[.!?])\s+', medical_report) if s]
     
-    # Enhance with confidence scores
-    result = []
-    for i, mapping in enumerate(base_mappings):
-        confidence = 0.0
-        if provenance_report.mappings and i < len(provenance_report.mappings):
-            confidence = provenance_report.mappings[i].confidence_score
-        
-        result.append({
-            "summary": mapping.get("summary", i),
-            "original": mapping.get("original", []),
-            "confidence": round(confidence, 3),
+    # 2. Calculate character ranges for each sentence in original report
+    sentence_ranges = []
+    current_pos = 0
+ 
+    char_to_sentence_idx = []
+    current_idx = 0
+    
+    for i, sent in enumerate(sentences):
+        # Find this sentence starting from current_idx
+        start = medical_report.find(sent, current_idx)
+        if start == -1:
+            # Should not happen if split is correct, but fallback
+            continue
+            
+        end = start + len(sent)
+        sentence_ranges.append({
+            "index": i,
+            "start": start,
+            "end": end,
+            "text": sent
         })
+        current_idx = end
     
+    result = []
+    
+    # 3. For each summary statement, find overlapping original sentences
+    if provenance_report.mappings:
+        for i, mapping in enumerate(provenance_report.mappings):
+            original_indices = set()
+            
+            # Check overlap with each source span
+            for span in mapping.source_spans:
+                span_start = span.start_char
+                span_end = span.end_char
+                
+                for sent_range in sentence_ranges:
+                    # Check for overlap
+                    # overlapping if (StartA <= EndB) and (EndA >= StartB)
+                    if (span_start < sent_range["end"]) and (span_end > sent_range["start"]):
+                        original_indices.add(sent_range["index"])
+            
+            result.append({
+                "summary": mapping.statement_index,
+                "original": sorted(list(original_indices)),
+                "confidence": round(mapping.confidence_score, 3),
+            })
+            
     return result
 
 
