@@ -17,7 +17,6 @@ from services.summaries.validation.readability import ReadabilityComponent
 from services.summaries.validation.safety import SafetyComponent
 from services.summaries.validation.hallucination import HallucinationComponent
 from services.summaries.validation.fidelity import FidelityComponent
-from services.summaries.validation.entity_matching import EntityMatchingComponent
 from services.summaries.validation.provenance import ProvenanceComponent
 from services.summaries.refiner import RefinerAgent
 from services.summaries.rag_service import RAGService
@@ -106,7 +105,6 @@ class PlainLanguageReportAgent:
             SafetyComponent(),
             HallucinationComponent(),
             FidelityComponent(),
-            EntityMatchingComponent(),
         ]
         
         if enable_provenance:

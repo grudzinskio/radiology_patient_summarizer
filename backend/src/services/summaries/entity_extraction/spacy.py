@@ -35,7 +35,7 @@ class ClinicalEntity:
     aliases: list[str]  # Alternative names for the concept
 
 
-class SpacyExtractor:
+class SpacyComponent:
     """
     Component for extracting clinical entities from radiology reports using SciSpacy and MedSpacy.
     Provides entity linking, negation detection, and section awareness.
@@ -83,7 +83,7 @@ class SpacyExtractor:
                 "linker_name": "mesh"
             })
 
-            logger.info("SpacyExtractor model loaded successfully.")
+            logger.info("SpacyComponent model loaded successfully.")
             _NLP_INSTANCE = nlp
         return _NLP_INSTANCE
 
