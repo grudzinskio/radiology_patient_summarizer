@@ -20,11 +20,11 @@ class ClinicalEntity:
     confidence: float
     
     # MedSpaCy context attributes
-    section: Optional[str]  # Which section of the report (findings, impression, etc.)
-    is_negated: bool  # "No evidence of pneumonia" -> negated=True
-    is_uncertain: bool  # "Possible nodule" -> uncertain=True
-    is_family: bool  # "Mother has history of cancer" -> family=True
-    is_historical: bool  # Past medical history vs current finding
+    section: Optional[str]
+    is_negated: bool
+    is_uncertain: bool
+    is_family: bool
+    is_historical: bool
     
     # Position in text
     start_char: int
@@ -161,12 +161,9 @@ class SpacyExtractor:
                 aliases=list(concept.aliases)[:5]  # First 5 aliases
             ))
         
-        # Deduplicate: keep highest confidence entity per (canonical_name, section, negation status)
+        # Deduplicate
         seen = {}
         for ent in entities:
-            # Key by canonical name, section, and negation status
-            # This allows "pneumonia" in findings vs impression to be separate
-            # but merges "brain" -> "Brain" duplicates in same section
             key = (ent.canonical_name, ent.section, ent.is_negated, ent.is_uncertain)
             
             if key not in seen or ent.confidence > seen[key].confidence:
