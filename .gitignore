@@ -28,3 +28,6 @@ out/
 logs/
 .DS_Store
 Thumbs.db
+
+# Python version files (pyenv)
+.python-version
