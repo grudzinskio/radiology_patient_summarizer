@@ -508,7 +508,15 @@ export function HITLDashboard() {
         <ReportsSidebar
           reports={reports}
           currentReportId={selectedReportId || ""}
-          onReportSelect={setSelectedReportId}
+          onReportSelect={(id) => {
+            setSelectedReportId(id);
+            setIsCreatingNew(false);
+          }}
+          onCreateNew={() => {
+            setIsCreatingNew(true);
+            setSelectedReportId(null);
+            setCurrentReport(null);
+          }}
         />
 
         {/* Main Content */}
