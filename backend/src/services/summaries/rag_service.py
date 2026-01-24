@@ -13,8 +13,8 @@ import logging
 import re
 from typing import Dict, List, Optional
 from schemas.validation import EntityExtractionResult
-from services.summaries.rag.glossary_builder import GlossaryBuilder
-from services.summaries.entity_extraction.pipeline_components.spacy_component import SpacyComponent
+from services.summaries.glossary_builder import GlossaryBuilder
+from services.summaries.entity_extraction.spacy import SpacyComponent
 
 logger = logging.getLogger(__name__)
 

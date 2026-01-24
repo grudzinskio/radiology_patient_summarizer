@@ -1,4 +1,5 @@
 from typing import Any, TypedDict
+from pathlib import Path
 
 from langgraph.graph import END, StateGraph
 from schemas.validation import EntityExtractionResult, ValidationInput
@@ -11,6 +12,7 @@ from services.summaries.validation.hallucination import HallucinationComponent
 from services.summaries.validation.fidelity import FidelityComponent
 from services.summaries.validation.entity_matching import EntityMatchingComponent
 from services.summaries.refiner import RefinerAgent
+from services.summaries.rag_service import RAGService
 
 class PlainLanguageReportAgentState(TypedDict):
     medical_report: str
@@ -23,7 +25,14 @@ class PlainLanguageReportAgentState(TypedDict):
     validation_reasons: list[str]
 
 class PlainLanguageReportAgent:
-    def __init__(self):
+    def __init__(self, dataset_path: str | None = None):
+        """
+        Initialize the plain language report agent.
+        
+        Args:
+            dataset_path: Path to merged_plain_language_dataset.csv. If None, 
+                         tries to find it in the repo root.
+        """
         self.entity_extraction_pipeline = EntityExtractionPipeline()
         self.summarization_agent = SummarizerAgent()
         self.validation_pipeline = ValidationPipeline(components=[
@@ -34,6 +43,14 @@ class PlainLanguageReportAgent:
             EntityMatchingComponent()
         ])
         self.refiner_agent = RefinerAgent()
+        
+        # Initialize RAG service
+        if dataset_path is None:
+            # Try to find dataset in repo root
+            repo_root = Path(__file__).parent.parent.parent.parent.parent.parent
+            dataset_path = str(repo_root / "merged_plain_language_dataset.csv")
+        
+        self.rag_service = RAGService(dataset_path=dataset_path)
         self.graph = self._build_agent_graph()
         # self.graph = self._build_basic_graph()
 
@@ -65,6 +82,7 @@ class PlainLanguageReportAgent:
         Build the agent graph.
 
         Important Medical Entities are extracted ->
+        RAG retrieves definitions for medical terms ->
         Medical Report is summarized ->
         Validation Pipeline is run -> 
         Refinement Pipeline is run if validation fails ->
@@ -73,12 +91,14 @@ class PlainLanguageReportAgent:
         """
         graph = StateGraph(PlainLanguageReportAgentState)
         graph.add_node("entity_extraction_pipeline", self._extraction_node)
+        graph.add_node("rag_retrieval", self._rag_retrieval_node)
         graph.add_node("summarization_agent", self._summarization_node)
         graph.add_node("validation_pipeline", self._validation_node)
         graph.add_node("refiner_agent", self._refinement_node)
 
         graph.set_entry_point("entity_extraction_pipeline")
-        graph.add_edge("entity_extraction_pipeline", "summarization_agent")
+        graph.add_edge("entity_extraction_pipeline", "rag_retrieval")
+        graph.add_edge("rag_retrieval", "summarization_agent")
         graph.add_edge("summarization_agent", "validation_pipeline")
         graph.add_conditional_edges(
             "validation_pipeline",
@@ -112,6 +132,18 @@ class PlainLanguageReportAgent:
         ] if isinstance(raw_terms, list) else []
         extracted_entities = EntityExtractionResult(findings=findings)
         return {"extracted_entities": extracted_entities}
+
+    def _rag_retrieval_node(self, state: PlainLanguageReportAgentState) -> dict[str, Any]:
+        """
+        Retrieve medical term definitions using RAG service.
+        """
+        extracted_entities = state["extracted_entities"] or EntityExtractionResult()
+        retrieved_definitions = self.rag_service.retrieve_definitions(
+            extracted_entities=extracted_entities,
+            medical_report=state["medical_report"],
+            max_definitions=20
+        )
+        return {"retrieved_definitions": retrieved_definitions}
 
     def _summarization_node(self, state: PlainLanguageReportAgentState) -> dict[str, Any]:
         extracted_entities = state["extracted_entities"] or EntityExtractionResult()
