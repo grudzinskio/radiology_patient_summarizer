@@ -9,10 +9,30 @@ from schemas.summaries import (
     ImproveResponse,
     SummarizeRequest,
     SummarizeResponse,
+    SummaryListResponse,
+    GetSummaryResponse,
 )
+from fastapi import HTTPException
 
 
 router = APIRouter(prefix="/summaries", tags=["summaries"])
+
+
+@router.get("", response_model=SummaryListResponse)
+def list_summaries() -> SummaryListResponse:
+    """List all summaries with metadata for the sidebar."""
+    summaries = summaries_service.list_summaries()
+    return SummaryListResponse(summaries=summaries)
+
+
+@router.get("/{summary_id}", response_model=GetSummaryResponse)
+def get_summary(summary_id: str) -> GetSummaryResponse:
+    """Get a single summary by ID."""
+    try:
+        summary_data = summaries_service.get_summary(summary_id=summary_id)
+        return GetSummaryResponse(**summary_data)
+    except KeyError as e:
+        raise HTTPException(status_code=404, detail=str(e))
 
 
 @router.post("/summarize", response_model=SummarizeResponse)

@@ -1,0 +1,152 @@
+=== SAMPLE REPORT 1: CHEST X-RAY ===
+
+CHEST X-RAY EXAMINATION
+
+CLINICAL HISTORY: Persistent cough for 2 weeks.
+
+FINDINGS:
+There is a 5mm nodule identified in the right lower lobe. The nodule appears well-circumscribed with smooth margins. Mild opacification is noted in the pleural space, which may represent a small amount of pleural fluid or pleural thickening. The cardiac silhouette is within normal limits. No acute osseous abnormalities are identified. The visualized soft tissues are unremarkable.
+
+IMPRESSION:
+1. Small 5mm nodule in the right lower lobe - recommend follow-up CT in 3-6 months to assess stability.
+2. Mild pleural opacification on the right side - clinical correlation recommended.
+3. No acute cardiopulmonary process identified.
+
+
+=== SAMPLE REPORT 2: ABDOMINAL CT ===
+
+ABDOMINAL CT WITH CONTRAST
+
+CLINICAL HISTORY: Abdominal pain, rule out appendicitis.
+
+TECHNIQUE: Multi-detector CT of the abdomen and pelvis was performed following administration of intravenous contrast material. Images were obtained in arterial and portal venous phases.
+
+FINDINGS:
+The liver is normal in size and contour. No focal hepatic lesions are identified. The gallbladder is distended but without wall thickening or pericholecystic fluid. The pancreas is unremarkable. The spleen is normal in size. Both kidneys enhance symmetrically without evidence of hydronephrosis, calculi, or masses. The adrenal glands are normal.
+
+The appendix is visualized and appears normal in caliber without wall thickening or periappendiceal fat stranding. No free fluid is identified in the abdomen or pelvis. The visualized bowel loops are unremarkable.
+
+IMPRESSION:
+1. Normal abdominal CT examination.
+2. No evidence of appendicitis.
+3. No acute abdominal pathology identified.
+
+
+=== SAMPLE REPORT 3: BRAIN MRI ===
+
+BRAIN MRI WITHOUT AND WITH CONTRAST
+
+CLINICAL HISTORY: Headache and dizziness.
+
+TECHNIQUE: Multi-planar, multi-sequence MRI of the brain was performed including T1-weighted, T2-weighted, FLAIR, and post-contrast T1-weighted images.
+
+FINDINGS:
+The brain parenchyma demonstrates normal signal intensity. No evidence of acute infarction, hemorrhage, or mass effect. The ventricles are normal in size and configuration. No abnormal enhancement is identified following contrast administration.
+
+The posterior fossa structures, including the brainstem and cerebellum, are unremarkable. The cranial nerves are grossly intact. The pituitary gland is normal in size and signal characteristics.
+
+IMPRESSION:
+1. Normal brain MRI examination.
+2. No evidence of acute intracranial pathology.
+3. No mass lesions or abnormal enhancement identified.
+
+
+=== SAMPLE REPORT 4: CHEST CT ===
+
+CHEST CT WITH CONTRAST
+
+CLINICAL HISTORY: Shortness of breath, evaluation for pulmonary embolism.
+
+TECHNIQUE: CT angiography of the chest was performed following administration of intravenous contrast material. Images were obtained in the arterial phase.
+
+FINDINGS:
+The lungs are clear bilaterally without evidence of consolidation, pleural effusion, or pneumothorax. The pulmonary vasculature enhances normally. No filling defects are identified within the main, lobar, segmental, or subsegmental pulmonary arteries to suggest pulmonary embolism.
+
+The mediastinum is unremarkable. The heart is normal in size. The great vessels are normal in caliber. No mediastinal or hilar lymphadenopathy is identified.
+
+IMPRESSION:
+1. No evidence of pulmonary embolism.
+2. Clear lungs bilaterally.
+3. Normal mediastinal structures.
+
+
+=== SAMPLE REPORT 5: PELVIC ULTRASOUND ===
+
+PELVIC ULTRASOUND
+
+CLINICAL HISTORY: Pelvic pain, rule out ovarian pathology.
+
+TECHNIQUE: Transabdominal and endovaginal ultrasound examination of the pelvis was performed.
+
+FINDINGS:
+The uterus is anteverted and measures 7.2 x 4.1 x 5.3 cm. The endometrial stripe measures 8 mm in thickness and appears normal. The myometrium is homogeneous in echotexture.
+
+The right ovary measures 3.2 x 2.1 x 2.8 cm and contains a 1.5 cm simple cyst. The left ovary measures 3.5 x 2.3 x 2.9 cm and appears normal. No adnexal masses are identified.
+
+A small amount of free fluid is noted in the cul-de-sac, which may be physiologic.
+
+IMPRESSION:
+1. Normal-sized uterus with normal endometrial stripe.
+2. Simple cyst in the right ovary, likely physiologic.
+3. Small amount of free fluid in the cul-de-sac, likely physiologic.
+
+
+=== SAMPLE REPORT 6: KNEE MRI ===
+
+KNEE MRI WITHOUT CONTRAST
+
+CLINICAL HISTORY: Knee pain following injury.
+
+TECHNIQUE: Multi-planar, multi-sequence MRI of the right knee was performed including T1-weighted, T2-weighted, and proton density sequences.
+
+FINDINGS:
+The medial and lateral menisci are intact without evidence of tear. The anterior and posterior cruciate ligaments are intact. The medial and lateral collateral ligaments are unremarkable.
+
+There is a small joint effusion. The articular cartilage appears normal. No bone marrow edema or fractures are identified. The patella is normally positioned.
+
+IMPRESSION:
+1. Intact menisci and ligaments.
+2. Small joint effusion, likely post-traumatic.
+3. No evidence of meniscal tear or ligamentous injury.
+
+
+=== SAMPLE REPORT 7: SPINE MRI ===
+
+LUMBAR SPINE MRI WITHOUT CONTRAST
+
+CLINICAL HISTORY: Lower back pain with radiation to the right leg.
+
+TECHNIQUE: Multi-planar, multi-sequence MRI of the lumbar spine was performed including T1-weighted and T2-weighted images.
+
+FINDINGS:
+The vertebral bodies demonstrate normal height and alignment. The intervertebral discs show mild degenerative changes at L4-L5 and L5-S1 with disc desiccation and mild disc space narrowing.
+
+At L4-L5, there is a small central disc protrusion causing mild thecal sac indentation but no significant central canal stenosis. The neural foramina are patent bilaterally.
+
+At L5-S1, there is a small right paracentral disc protrusion causing mild right neural foraminal narrowing. The central canal is patent.
+
+IMPRESSION:
+1. Mild degenerative disc disease at L4-L5 and L5-S1.
+2. Small disc protrusions at L4-L5 and L5-S1 without significant central canal stenosis.
+3. Mild right neural foraminal narrowing at L5-S1.
+
+
+=== SAMPLE REPORT 8: CARDIAC ECHO ===
+
+TRANSTHORACIC ECHOCARDIOGRAM
+
+CLINICAL HISTORY: Evaluation of heart function.
+
+TECHNIQUE: Two-dimensional and Doppler echocardiographic examination was performed.
+
+FINDINGS:
+The left ventricle is normal in size with normal wall thickness. Left ventricular systolic function is normal with an estimated ejection fraction of 60-65%. Regional wall motion is normal. The left atrium is normal in size.
+
+The right ventricle is normal in size and function. The right atrium is unremarkable. The interatrial and interventricular septa are intact.
+
+The aortic valve is tricuspid and appears normal. The mitral valve shows mild regurgitation. The tricuspid and pulmonary valves are unremarkable.
+
+IMPRESSION:
+1. Normal left ventricular size and systolic function.
+2. Mild mitral regurgitation.
+3. Normal cardiac structure and function otherwise.

@@ -19,12 +19,16 @@ class SummaryRecord:
     summary_id: str
     plain_language_report: str
     status: str
+    medical_report: str  # Store original report
     patient_id: str | None = None
     report_id: str | None = None
     radiologist_notes: str | None = None
     provenance_report: Optional[ProvenanceReport] = None
     extracted_entities: Optional[EntityExtractionResult] = None
     overall_confidence: float = 0.0
+    validation_checks: list[dict[str, Any]] = field(default_factory=list)  # Store validation checks
+    sentence_mapping: list[dict[str, Any]] = field(default_factory=list)  # Store sentence mapping
+    validation_passed: bool = False
 
 
 _SUMMARY_STORE: dict[str, SummaryRecord] = {}
@@ -72,11 +76,15 @@ def summarize_report(
         summary_id=summary_id,
         plain_language_report=plain_language_report,
         status=status,
+        medical_report=medical_report,  # Store original report
         patient_id=patient_id,
         report_id=report_id,
         provenance_report=provenance_report,
         extracted_entities=extracted_entities,
         overall_confidence=overall_confidence,
+        validation_checks=validation_checks,  # Store validation checks
+        sentence_mapping=sentence_mapping,  # Store sentence mapping
+        validation_passed=validation_passed,  # Store validation status
     )
 
     return {
@@ -208,6 +216,48 @@ def download_summary(*, summary_id: str) -> dict[str, Any]:
         "file_name": f"{record.summary_id}.txt",
         "plain_language_report": record.plain_language_report,
     }
+
+
+def get_summary(*, summary_id: str) -> dict[str, Any]:
+    """Retrieve a full summary record by ID."""
+    record = _get_record(summary_id)
+    
+    return {
+        "summary_id": record.summary_id,
+        "plain_language_report": record.plain_language_report,
+        "medical_report": record.medical_report,
+        "status": record.status,
+        "validation_passed": record.validation_passed,
+        "validation_notes": [],
+        "validation_checks": record.validation_checks,
+        "sentence_mapping": record.sentence_mapping,
+        "overall_confidence": record.overall_confidence,
+        "provenance": record.provenance_report,
+        "extracted_entities": record.extracted_entities,
+        "patient_id": record.patient_id,
+        "report_id": record.report_id,
+    }
+
+
+def list_summaries() -> list[dict[str, Any]]:
+    """List all summary records with metadata for the sidebar."""
+    from datetime import datetime
+    
+    summaries = []
+    for record in _SUMMARY_STORE.values():
+        # Generate a date from summary_id (using first 8 chars as timestamp approximation)
+        # In production, you'd store created_at timestamp
+        summaries.append({
+            "id": record.summary_id,
+            "patient_id": record.patient_id or "Unknown",
+            "patient_name": f"Patient {record.patient_id[-4:]}" if record.patient_id else "Unknown",
+            "date": datetime.now().strftime("%Y-%m-%d"),  # Placeholder - should store actual date
+            "status": "approved" if record.status == "approved" else "pending",
+        })
+    
+    # Sort by summary_id (newest first, assuming UUIDs)
+    summaries.sort(key=lambda x: x["id"], reverse=True)
+    return summaries
 
 
 def _get_record(summary_id: str) -> SummaryRecord:

@@ -106,3 +106,22 @@ class DownloadResponse(BaseModel):
     file_name: str
     plain_language_report: str
 
+
+class SummaryListItem(BaseModel):
+    """Summary metadata for list view."""
+    id: str = Field(..., description="Summary ID")
+    patient_id: str = Field(..., description="Patient identifier")
+    patient_name: str = Field(..., description="Patient name")
+    date: str = Field(..., description="Report date (YYYY-MM-DD)")
+    status: Literal["pending", "approved", "rejected"] = Field(..., description="Summary status")
+
+
+class SummaryListResponse(BaseModel):
+    """Response containing list of summaries."""
+    summaries: list[SummaryListItem] = Field(default_factory=list, description="List of summary metadata")
+
+
+class GetSummaryResponse(SummarizeResponse):
+    """Response for getting a single summary (includes original report)."""
+    medical_report: str = Field(..., description="Original medical report text")
+
