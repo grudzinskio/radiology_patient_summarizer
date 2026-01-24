@@ -4,7 +4,7 @@ from fastapi.responses import RedirectResponse
 
 from contextlib import asynccontextmanager
 from routers import health, summaries
-from services.summaries.entity_extraction.pipeline_components.spacy_component import SpacyComponent
+from services.summaries.entity_extraction.spacy import SpacyComponent
 
 
 @asynccontextmanager
@@ -27,4 +27,4 @@ app.include_router(health.router)
 app.include_router(summaries.router)
 
 if __name__ == "__main__":
-    uvicorn.run("main:app", host="127.0.0.1", port=8000, reload=True)
+    uvicorn.run("main:app", host="localhost", port=8000, reload=True)
