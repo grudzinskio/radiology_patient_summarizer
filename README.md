@@ -1,3 +1,10 @@
+
+
+Here's the Python 3.12.9 download link:
+
+**Windows 64-bit installer:**
+[https://www.python.org/ftp/python/3.12.9/python-3.12.9-amd64.exe](https://www.python.org/ftp/python/3.12.9/python-3.12.9-amd64.exe)
+
 cd C:\Users\weinbendera\Repos\hack-4-health-2026-radiohead
 
 # Create new venv with Python 3.12
