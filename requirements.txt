@@ -10,7 +10,7 @@ langgraph
 numpy>=1.26.0,<1.27.0
 scikit-learn
 spacy>=3.7.0,<3.8.0
-scispacy==0.5.4
+scispacy>=0.6.2
 pysbd
 nmslib
 conllu

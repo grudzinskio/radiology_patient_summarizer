@@ -16,7 +16,6 @@ py -3.12 -m venv .venv
 .venv\Scripts\activate
 
 # Install everything
-
 pip install -r requirements.txt
 
 # After pip install -r requirements.txt, run:
