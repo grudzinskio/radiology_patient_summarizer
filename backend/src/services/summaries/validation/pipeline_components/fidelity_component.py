@@ -4,9 +4,9 @@ Ensures all critical medical facts from the original report are present in the s
 """
 from typing import List
 from rapidfuzz import fuzz
-from backend.app.services.summaries.validation.pipeline_components.pipeline_component import PipelineComponent
-from backend.app.schemas.validation import ValidationInput, ValidationResult
-from backend.app.services.summaries.validation.config import (
+from services.summaries.validation.pipeline_components.pipeline_component import PipelineComponent
+from schemas.validation import ValidationInput, ValidationResult
+from services.summaries.validation.config import (
     ENTITY_FUZZY_MATCH_THRESHOLD,
     ENTITY_CASE_SENSITIVE,
 )

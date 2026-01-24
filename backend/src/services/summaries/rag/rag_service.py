@@ -12,9 +12,9 @@ Provides a "Definitions Context" for the summarization pipeline.
 import logging
 import re
 from typing import Dict, List, Optional
-from backend.app.schemas.validation import EntityExtractionResult
-from backend.app.services.summaries.rag.glossary_builder import GlossaryBuilder
-from backend.app.services.summaries.entity_extraction.pipeline_components.spacy_component import SpacyComponent
+from schemas.validation import EntityExtractionResult
+from services.summaries.rag.glossary_builder import GlossaryBuilder
+from services.summaries.entity_extraction.pipeline_components.spacy_component import SpacyComponent
 
 logger = logging.getLogger(__name__)
 

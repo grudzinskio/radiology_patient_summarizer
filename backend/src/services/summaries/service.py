@@ -4,7 +4,7 @@ from dataclasses import dataclass
 from typing import Any
 from uuid import uuid4
 
-from backend.app.services.summaries.plain_language_report_agent import PlainLanguageReportAgent
+from services.summaries.plain_language_report_agent import PlainLanguageReportAgent
 
 
 @dataclass

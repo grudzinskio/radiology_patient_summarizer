@@ -4,14 +4,14 @@ Automatically refines summaries when validation fails by providing specific erro
 """
 from typing import Optional, Tuple
 import logging
-from backend.app.schemas.validation import (
+from schemas.validation import (
     ValidationInput,
     ValidationReport,
     EntityExtractionResult,
 )
-from backend.app.services.summaries.validation.validation_pipeline import ValidationPipeline
-from backend.app.services.summaries.validation.config import MAX_RETRY_ATTEMPTS
-from backend.app.utils.clients.llm_clients import BaseLLMClient, OpenAIClient
+from services.summaries.validation.validation_pipeline import ValidationPipeline
+from services.summaries.validation.config import MAX_RETRY_ATTEMPTS
+from utils.clients.llm_clients import BaseLLMClient, OpenAIClient
 
 logger = logging.getLogger(__name__)
 

@@ -1,11 +1,11 @@
 from typing import Any, TypedDict
 
 from langgraph.graph import END, StateGraph
-from backend.app.schemas.validation import EntityExtractionResult, ValidationInput
-from backend.app.services.summaries.entity_extraction.enitity_extraction_pipeline import EntityExtractionPipeline
-from backend.app.services.summaries.summarization.summarizer_agent import SummarizerAgent
-from backend.app.services.summaries.validation.validation_pipeline import ValidationPipeline
-from backend.app.services.summaries.refinement.refiner_agent import RefinerAgent
+from schemas.validation import EntityExtractionResult, ValidationInput
+from services.summaries.entity_extraction.enitity_extraction_pipeline import EntityExtractionPipeline
+from services.summaries.summarization.summarizer_agent import SummarizerAgent
+from services.summaries.validation.validation_pipeline import ValidationPipeline
+from services.summaries.refinement.refiner_agent import RefinerAgent
 
 class PlainLanguageReportAgentState(TypedDict):
     medical_report: str

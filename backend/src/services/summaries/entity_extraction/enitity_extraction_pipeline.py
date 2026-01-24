@@ -1,6 +1,6 @@
 from typing import List
 import logging
-from backend.app.services.summaries.entity_extraction.pipeline_components.spacy_component import SpacyComponent
+from services.summaries.entity_extraction.pipeline_components.spacy_component import SpacyComponent
 
 logger = logging.getLogger(__name__)
 

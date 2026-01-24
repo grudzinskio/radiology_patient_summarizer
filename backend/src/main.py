@@ -1,7 +1,8 @@
+import uvicorn
 from fastapi import FastAPI
 from fastapi.responses import RedirectResponse
 
-from backend.app.routers import health, summaries
+from routers import health, summaries
 
 
 app = FastAPI(title="Radiohead Backend API", version="0.1.0")
@@ -14,3 +15,6 @@ def root() -> RedirectResponse:
 
 app.include_router(health.router)
 app.include_router(summaries.router)
+
+if __name__ == "__main__":
+    uvicorn.run("main:app", host="127.0.0.1", port=8000, reload=True)

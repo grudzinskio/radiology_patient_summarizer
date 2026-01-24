@@ -1,5 +1,5 @@
-from backend.app.services.summaries.validation.pipeline_components.pipeline_component import PipelineComponent
-from backend.app.schemas.validation import ValidationInput, ValidationReport, ValidationResult
+from services.summaries.validation.pipeline_components.pipeline_component import PipelineComponent
+from schemas.validation import ValidationInput, ValidationReport, ValidationResult
 from typing import Any, Optional, List
 import logging
 

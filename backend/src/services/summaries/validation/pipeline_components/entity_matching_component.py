@@ -1,4 +1,4 @@
-from backend.app.services.summaries.validation.pipeline_components.pipeline_component import PipelineComponent
+from services.summaries.validation.pipeline_components.pipeline_component import PipelineComponent
 from typing import Any
 
 class EntityMatchingComponent(PipelineComponent):

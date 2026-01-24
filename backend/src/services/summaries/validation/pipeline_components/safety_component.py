@@ -4,9 +4,9 @@ Scans for banned keywords, medical advice patterns, and alarmist language.
 """
 import re
 from typing import List
-from backend.app.services.summaries.validation.pipeline_components.pipeline_component import PipelineComponent
-from backend.app.schemas.validation import ValidationInput, ValidationResult
-from backend.app.services.summaries.validation.config import (
+from services.summaries.validation.pipeline_components.pipeline_component import PipelineComponent
+from schemas.validation import ValidationInput, ValidationResult
+from services.summaries.validation.config import (
     SAFETY_BANNED_KEYWORDS,
     SAFETY_MEDICAL_ADVICE_PATTERNS,
     SAFETY_ALARMIST_PATTERNS,

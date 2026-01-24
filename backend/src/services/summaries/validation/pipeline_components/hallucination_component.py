@@ -4,9 +4,9 @@ Detects entities in the summary that were not present in the original report.
 """
 import json
 from typing import List, Set
-from backend.app.services.summaries.validation.pipeline_components.pipeline_component import PipelineComponent
-from backend.app.schemas.validation import ValidationInput, ValidationResult, EntityExtractionResult
-from backend.app.utils.clients.llm_clients import BaseLLMClient, OpenAIClient
+from services.summaries.validation.pipeline_components.pipeline_component import PipelineComponent
+from schemas.validation import ValidationInput, ValidationResult, EntityExtractionResult
+from utils.clients.llm_clients import BaseLLMClient, OpenAIClient
 
 
 class HallucinationComponent(PipelineComponent):

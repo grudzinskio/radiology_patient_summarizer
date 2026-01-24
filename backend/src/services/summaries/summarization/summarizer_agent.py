@@ -4,8 +4,8 @@ Automatically refines summaries when validation fails by providing specific erro
 """
 from typing import Optional
 import logging
-from backend.app.schemas.validation import EntityExtractionResult
-from backend.app.utils.clients.llm_clients import BaseLLMClient, OpenAIClient
+from schemas.validation import EntityExtractionResult
+from utils.clients.llm_clients import BaseLLMClient, OpenAIClient
 
 logger = logging.getLogger(__name__)
 
