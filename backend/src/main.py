@@ -1,6 +1,7 @@
 import uvicorn
 from fastapi import FastAPI
 from fastapi.responses import RedirectResponse
+from fastapi.middleware.cors import CORSMiddleware
 import logging
 
 # Configure logging
@@ -30,6 +31,18 @@ async def lifespan(app: FastAPI):
 
 
 app = FastAPI(title="Radiohead Backend API", version="0.1.0", lifespan=lifespan)
+
+# Add CORS middleware
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=[
+        "http://localhost:3000",  # Next.js default port
+        "http://127.0.0.1:3000",
+    ],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 
 # Redirect to docs for FastAPI noobs
 @app.get("/", include_in_schema=False)
