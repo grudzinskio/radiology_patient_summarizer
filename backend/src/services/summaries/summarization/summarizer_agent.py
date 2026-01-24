@@ -1,6 +1,6 @@
 """
-Self-Correction Loop - Step 4: The Refiner
-Automatically refines summaries when validation fails by providing specific error feedback.
+Step 2: The Summarizer
+Generates an initial plain language summary of a medical report.
 """
 from typing import Optional
 import logging
@@ -73,9 +73,9 @@ class SummarizerAgent:
         """Build the summary prompt."""
         
         prompt_parts = [
-            "Your previous summary failed validation. Please rewrite it to fix the following errors:",
+            "You are an empathetic medical translator. Your job is to create patient-friendly summaries of medical reports that are accurate, safe, and easy to understand.",
             "",
-            "VALIDATION ERRORS:",
+            "TASK: Create a plain language summary of the medical report below.",
         ]
         
         prompt_parts.extend([

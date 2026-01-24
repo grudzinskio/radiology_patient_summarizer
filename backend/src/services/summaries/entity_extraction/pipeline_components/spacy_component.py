@@ -12,7 +12,7 @@ class SpacyComponent():
     Component for extracting entities from a text using Spacy.
     """
     def __init__(self):
-        self.nlp = spacy.load("en_core_sci_md")
+        self.nlp = spacy.load("en_core_sci_sm")
         self.nlp.add_pipe("scispacy_linker", config={"resolve_abbreviations": True, "linker_name": "umls"})
         self.linker = self.nlp.get_pipe("scispacy_linker")
 

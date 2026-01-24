@@ -2,9 +2,14 @@ from typing import Any, TypedDict
 
 from langgraph.graph import END, StateGraph
 from schemas.validation import EntityExtractionResult, ValidationInput
-from services.summaries.entity_extraction.enitity_extraction_pipeline import EntityExtractionPipeline
+from services.summaries.entity_extraction.entity_extraction_pipeline import EntityExtractionPipeline
 from services.summaries.summarization.summarizer_agent import SummarizerAgent
 from services.summaries.validation.validation_pipeline import ValidationPipeline
+from services.summaries.validation.pipeline_components.readability_component import ReadabilityComponent
+from services.summaries.validation.pipeline_components.safety_component import SafetyComponent
+from services.summaries.validation.pipeline_components.hallucination_component import HallucinationComponent
+from services.summaries.validation.pipeline_components.fidelity_component import FidelityComponent
+from services.summaries.validation.pipeline_components.entity_matching_component import EntityMatchingComponent
 from services.summaries.refinement.refiner_agent import RefinerAgent
 
 class PlainLanguageReportAgentState(TypedDict):
@@ -19,12 +24,18 @@ class PlainLanguageReportAgentState(TypedDict):
 
 class PlainLanguageReportAgent:
     def __init__(self):
-        # self.entity_extraction_pipeline = EntityExtractionPipeline()
+        self.entity_extraction_pipeline = EntityExtractionPipeline()
         self.summarization_agent = SummarizerAgent()
-        # self.validation_pipeline = ValidationPipeline()
-        # self.refiner_agent = RefinerAgent()
-        # self.graph = self._build_agent_graph()
-        self.graph = self._build_basic_graph()
+        self.validation_pipeline = ValidationPipeline(components=[
+            ReadabilityComponent(),
+            SafetyComponent(),
+            HallucinationComponent(),
+            FidelityComponent(),
+            EntityMatchingComponent()
+        ])
+        self.refiner_agent = RefinerAgent()
+        self.graph = self._build_agent_graph()
+        # self.graph = self._build_basic_graph()
 
     def _create_initial_state(self, medical_report: str, patient_id: str | None = None, report_id: str | None = None) -> PlainLanguageReportAgentState:
         return PlainLanguageReportAgentState(
