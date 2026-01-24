@@ -1,5 +1,4 @@
 from imaplib import ParseFlags
-from backend.app.services.summaries.validation.pipeline_components.pipeline_component import PipelineComponent
 from typing import Any
 import logging
 import spacy
@@ -8,7 +7,7 @@ import scispacy
 
 logger = logging.getLogger(__name__)
 
-class SpacyComponent(PipelineComponent):
+class SpacyComponent():
     """
     Component for extracting entities from a text using Spacy.
     """

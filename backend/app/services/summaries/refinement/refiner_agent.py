@@ -73,7 +73,7 @@ class RefinerAgent:
         ]
         
         try:
-            refined_summary = self.llm_client.generate(messages, temperature=0.3)
+            refined_summary = self.llm_client.generate(messages)
             logger.info(f"Generated refined summary (length: {len(refined_summary)} chars)")
             return refined_summary.strip()
         except Exception as e:

@@ -1,11 +1,16 @@
 openai
 python-dotenv
 fastapi
+uvicorn
 textstat
 rapidfuzz
 pydantic
 pandas
-spacy>=3.8.5  # v3.8.5+ has pre-built wheels for Python 3.13 on Windows
-scispacy  # Install with --no-deps to avoid downgrading spacy: pip install scispacy --no-deps
-# After installing, download the spacy model:
-# python -m spacy download en_core_sci_md
+langgraph
+numpy>=1.26.0,<1.27.0
+scikit-learn
+spacy>=3.7.0,<3.8.0
+scispacy==0.5.4
+pysbd
+nmslib
+conllu

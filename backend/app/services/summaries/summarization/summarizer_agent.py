@@ -2,15 +2,9 @@
 Self-Correction Loop - Step 4: The Refiner
 Automatically refines summaries when validation fails by providing specific error feedback.
 """
-from typing import Optional, Tuple
+from typing import Optional
 import logging
-from backend.app.schemas.validation import (
-    ValidationInput,
-    ValidationReport,
-    EntityExtractionResult,
-)
-from backend.app.services.summaries.validation.validation_pipeline import ValidationPipeline
-from backend.app.services.summaries.validation.config import MAX_RETRY_ATTEMPTS
+from backend.app.schemas.validation import EntityExtractionResult
 from backend.app.utils.clients.llm_clients import BaseLLMClient, OpenAIClient
 
 logger = logging.getLogger(__name__)
@@ -63,8 +57,8 @@ class SummarizerAgent:
         ]
         
         try:
-            summary = self.llm_client.generate(messages, temperature=0.3)
-            logger.info(f"Generated refined summary (length: {len(refined_summary)} chars)")
+            summary = self.llm_client.generate(messages)
+            logger.info(f"Generated summary (length: {len(summary)} chars)")
             return summary.strip()
         except Exception as e:
             logger.error(f"Error generating summary: {str(e)}")

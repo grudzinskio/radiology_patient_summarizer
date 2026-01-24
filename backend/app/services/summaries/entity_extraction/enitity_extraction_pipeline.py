@@ -1,5 +1,4 @@
 from typing import List
-from backend.app.services.summaries.validation.pipeline_components.pipeline_component import PipelineComponent
 import logging
 from backend.app.services.summaries.entity_extraction.pipeline_components.spacy_component import SpacyComponent
 
