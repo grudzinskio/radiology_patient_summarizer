@@ -142,9 +142,16 @@ def _format_entity_list(extracted_entities: EntityExtractionResult) -> str:
     for entity in extracted_entities.entities:
         original_text = getattr(entity, "original_text", "") or ""
         canonical_name = getattr(entity, "canonical_name", "") or ""
+        aliases = getattr(entity, "aliases", []) or []
         if original_text:
             items.append(original_text)
         if canonical_name and canonical_name.lower() != original_text.lower():
             items.append(canonical_name)
+        original_lower = original_text.lower()
+        canonical_lower = canonical_name.lower() if canonical_name else ""
+        for alias in aliases:
+            alias_lower = alias.lower() if alias else ""
+            if alias_lower and alias_lower not in (original_lower, canonical_lower):
+                items.append(alias)
     unique_items = list(dict.fromkeys([item.strip() for item in items if item.strip()]))
     return ", ".join(unique_items) if unique_items else "None"
