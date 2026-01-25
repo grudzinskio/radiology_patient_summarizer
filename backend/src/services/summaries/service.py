@@ -8,6 +8,7 @@ from services.summaries.plain_language_report_agent import PlainLanguageReportAg
 from schemas.provenance import ProvenanceReport
 from schemas.validation import EntityExtractionResult
 import logging
+import re
 
 logger = logging.getLogger(__name__)
 
@@ -97,8 +98,80 @@ def summarize_report(
         "sentence_mapping": sentence_mapping,
         "overall_confidence": overall_confidence,
         "provenance": provenance_report,
-        "extracted_entities": extracted_entities,
+        "extracted_entities": _categorize_entities(extracted_entities),
     }
+
+
+def _categorize_entities(extracted_entities: EntityExtractionResult | None) -> dict[str, list[str]]:
+    """
+    Transform EntityExtractionResult into categorized format for frontend.
+    
+    Frontend expects:
+    {
+        findings: string[],
+        anatomy: string[],
+        measurements: string[],
+        uncertainty: string[]
+    }
+    
+    Semantic type mappings:
+    - Findings: T033 (Finding), T047 (Disease/Syndrome), T184 (Sign/Symptom), 
+                T046 (Pathologic Function), T037 (Injury)
+    - Anatomy: T023 (Body Part), T024 (Tissue), T030 (Body Space), T031 (Body Substance)
+    - Measurements: Entities containing measurement patterns (mm, cm, etc.)
+    - Uncertainty: Entities where is_uncertain=True
+    """
+    result = {
+        "findings": [],
+        "anatomy": [],
+        "measurements": [],
+        "uncertainty": [],
+    }
+    
+    if not extracted_entities or not extracted_entities.entities:
+        return result
+    
+    # Semantic type categories
+    FINDING_TYPES = {'T033', 'T047', 'T184', 'T046', 'T037', 'T191', 'T048', 'T049'}
+    ANATOMY_TYPES = {'T023', 'T024', 'T030', 'T031'}
+    
+    # Track added entities to avoid duplicates across categories
+    seen = set()
+    
+    for entity in extracted_entities.entities:
+        display_text = entity.canonical_name or entity.original_text
+        
+        # Skip if already added
+        if display_text.lower() in seen:
+            continue
+        
+        # Check for uncertainty first (entity-level flag)
+        if entity.is_uncertain:
+            result["uncertainty"].append(display_text)
+            seen.add(display_text.lower())
+            continue
+        
+        # Check for measurements (look for numeric patterns)
+        if re.search(r'\d+\s*(mm|cm|ml|cc|%)', entity.original_text, re.IGNORECASE):
+            result["measurements"].append(entity.original_text)
+            seen.add(display_text.lower())
+            continue
+        
+        # Categorize by semantic type
+        primary_type = entity.semantic_types[0] if entity.semantic_types else None
+        
+        if primary_type in FINDING_TYPES:
+            result["findings"].append(display_text)
+            seen.add(display_text.lower())
+        elif primary_type in ANATOMY_TYPES:
+            result["anatomy"].append(display_text)
+            seen.add(display_text.lower())
+        else:
+            # Default to findings for any other clinical entity
+            result["findings"].append(display_text)
+            seen.add(display_text.lower())
+    
+    return result
 
 
 def _build_sentence_mapping(state: dict[str, Any]) -> list[dict[str, Any]]:
@@ -272,7 +345,7 @@ def get_summary(*, summary_id: str) -> dict[str, Any]:
         "sentence_mapping": record.sentence_mapping,
         "overall_confidence": record.overall_confidence,
         "provenance": record.provenance_report,
-        "extracted_entities": record.extracted_entities,
+        "extracted_entities": _categorize_entities(record.extracted_entities),
         "patient_id": record.patient_id,
         "report_id": record.report_id,
     }
