@@ -44,6 +44,5 @@ MAX_RETRY_ATTEMPTS = 2  # Maximum number of refinement attempts (reduced for spe
 
 # Component Configuration
 ENABLE_FIDELITY_CHECK = True
-ENABLE_HALLUCINATION_CHECK = True
 ENABLE_READABILITY_CHECK = True
 ENABLE_SAFETY_CHECK = True

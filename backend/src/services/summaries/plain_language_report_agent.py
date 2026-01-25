@@ -236,6 +236,7 @@ class PlainLanguageReportAgent:
 
     def _extraction_node(self, state: PlainLanguageReportAgentState) -> dict[str, Any]:
         """Extract medical entities from the report."""
+        start_time = time.time()
         logger.info("Starting Entity Extraction node")
         
         try:
@@ -248,6 +249,10 @@ class PlainLanguageReportAgent:
             terms_list = []
 
         extracted_entities = EntityExtractionResult(entities=terms_list)
+        
+        elapsed = time.time() - start_time
+        logger.info(f"Entity Extraction completed in {elapsed:.2f}s (found {len(extracted_entities.entities)} entities)")
+        
         
         # Log the extraction step
         current_log = state.get("chain_of_thought", [])
@@ -273,6 +278,7 @@ class PlainLanguageReportAgent:
         """
         Retrieve medical term definitions using RAG service.
         """
+        start_time = time.time()
         logger.info("Starting RAG Retrieval node")
         extracted_entities = state["extracted_entities"] or EntityExtractionResult()
 
@@ -285,6 +291,9 @@ class PlainLanguageReportAgent:
             medical_report=state["medical_report"],
             max_definitions=20
         )
+        
+        elapsed = time.time() - start_time
+        logger.info(f"RAG Retrieval completed in {elapsed:.2f}s (retrieved {len(retrieved_definitions)} definitions)")
         
         # Log the retrieval step
         log_step = ChainOfThoughtStep(
@@ -304,6 +313,7 @@ class PlainLanguageReportAgent:
 
     def _summarization_node(self, state: PlainLanguageReportAgentState) -> dict[str, Any]:
         """Generate a patient-friendly summary with provenance tracking."""
+        start_time = time.time()
         logger.info("Starting Summarization node")
         extracted_entities = state["extracted_entities"] or EntityExtractionResult()
 
@@ -327,6 +337,9 @@ class PlainLanguageReportAgent:
                 },
                 timestamp=time.time()
             )
+            
+            elapsed = time.time() - start_time
+            logger.info(f"Summarization completed in {elapsed:.2f}s (provenance mode, {len(summary_with_prov.statements)} statements)")
             
             return {
                 "plain_language_report": summary_with_prov.plain_language_report,
@@ -352,6 +365,9 @@ class PlainLanguageReportAgent:
                 timestamp=time.time()
             )
             
+            elapsed = time.time() - start_time
+            logger.info(f"Summarization completed in {elapsed:.2f}s (standard mode, {len(plain_language_report)} chars)")
+            
             return {
                 "plain_language_report": plain_language_report, 
                 "chain_of_thought": current_log + [log_step]
@@ -359,6 +375,7 @@ class PlainLanguageReportAgent:
 
     def _validation_node(self, state: PlainLanguageReportAgentState) -> dict[str, Any]:
         """Run validation checks on the summary."""
+        start_time = time.time()
         logger.info("Starting Validation node")
         validation_input = ValidationInput(
             original_report=state["medical_report"],
@@ -397,6 +414,9 @@ class PlainLanguageReportAgent:
             logger.warning(f"Validation FAILED ({len(failed_components)} checks failed).")
             for cmp in failed_components:
                 logger.warning(f"  - {cmp.component_name}: {cmp.error_messages}")
+        
+        elapsed = time.time() - start_time
+        logger.info(f"Validation completed in {elapsed:.2f}s (passed={report.overall_passed})")
 
             
         log_step = ChainOfThoughtStep(

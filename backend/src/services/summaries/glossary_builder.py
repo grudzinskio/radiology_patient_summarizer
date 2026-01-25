@@ -9,11 +9,17 @@ from rapidfuzz import fuzz, process
 
 logger = logging.getLogger(__name__)
 
+# Module-level cache for glossary data (avoid reloading 85k records per request)
+_GLOSSARY_CACHE: dict | None = None
+_DATASET_CACHE: pd.DataFrame | None = None
+
 
 class GlossaryBuilder:
     """
     Builds and maintains a searchable glossary from the medical dataset.
     Uses the PLABA and Cochrane datasets which contain technical -> simple translations.
+    
+    Note: Uses module-level caching to avoid reloading 85k records per request.
     """
     
     def __init__(self, dataset_path: Optional[str] = None):
@@ -24,6 +30,8 @@ class GlossaryBuilder:
             dataset_path: Path to the merged_plain_language_dataset.csv file.
                          If None, tries to find it in the repo root.
         """
+        global _GLOSSARY_CACHE, _DATASET_CACHE
+        
         if dataset_path is None:
             # Try to find dataset in data folder
             # Current file: backend/src/services/summaries/glossary_builder.py
@@ -36,9 +44,17 @@ class GlossaryBuilder:
                 dataset_path = Path("data") / "merged_plain_language_dataset.csv"
         
         self.dataset_path = Path(dataset_path).absolute()
-        self.glossary: Dict[str, str] = {}
-        self._dataset_df: Optional[pd.DataFrame] = None
-        self._loaded = False
+        
+        # Use cached data if available
+        if _GLOSSARY_CACHE is not None:
+            self.glossary = _GLOSSARY_CACHE
+            self._dataset_df = _DATASET_CACHE
+            self._loaded = True
+            logger.info("Using cached glossary (skipped CSV reload)")
+        else:
+            self.glossary: Dict[str, str] = {}
+            self._dataset_df: Optional[pd.DataFrame] = None
+            self._loaded = False
         
     def load_dataset(self) -> pd.DataFrame:
         """
@@ -133,6 +149,12 @@ class GlossaryBuilder:
         
         logger.info(f"Built glossary with {len(glossary):,} term definitions")
         self.glossary = glossary
+        
+        # Save to module-level cache for future instances
+        global _GLOSSARY_CACHE, _DATASET_CACHE
+        _GLOSSARY_CACHE = glossary
+        _DATASET_CACHE = self._dataset_df
+        
         return glossary
     
     def search_term(self, term: str, threshold: int = 80) -> Optional[Tuple[str, str]]:

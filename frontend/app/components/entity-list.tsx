@@ -34,7 +34,7 @@ export function EntityList({ entities }: EntityListProps) {
               </span>
             </div>
             <div className="flex flex-wrap gap-1.5">
-              {entities[key].length > 0 ? (
+              {(entities[key]?.length ?? 0) > 0 ? (
                 entities[key].map((item, index) => (
                   <span
                     key={index}

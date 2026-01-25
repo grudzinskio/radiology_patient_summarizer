@@ -261,21 +261,28 @@ class RefinerAgent:
 
 
 def _format_entity_list(extracted_entities: EntityExtractionResult) -> str:
-    """Format entities for inclusion in prompts."""
+    """
+    Format entities for inclusion in prompts.
+    
+    Note: Only includes original_text and canonical_name to keep the list concise.
+    Aliases are NOT included to avoid flooding the prompt with synonyms.
+    """
     items: list[str] = []
     for entity in extracted_entities.entities:
         original_text = getattr(entity, "original_text", "") or ""
         canonical_name = getattr(entity, "canonical_name", "") or ""
-        aliases = getattr(entity, "aliases", []) or []
+        
+        # Only add original text
         if original_text:
             items.append(original_text)
+        
+        # Add canonical name only if it's meaningfully different (not just case change)
         if canonical_name and canonical_name.lower() != original_text.lower():
+            # Skip if canonical name looks like a worse link (e.g. "Cancer" when original is "contrast")
+            if len(canonical_name) > len(original_text) * 3:
+                continue  # Skip overly long canonical names
             items.append(canonical_name)
-        original_lower = original_text.lower()
-        canonical_lower = canonical_name.lower() if canonical_name else ""
-        for alias in aliases:
-            alias_lower = alias.lower() if alias else ""
-            if alias_lower and alias_lower not in (original_lower, canonical_lower):
-                items.append(alias)
+    
+    # Deduplicate while preserving order
     unique_items = list(dict.fromkeys([item.strip() for item in items if item.strip()]))
     return ", ".join(unique_items) if unique_items else "None"

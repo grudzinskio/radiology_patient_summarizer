@@ -261,8 +261,10 @@ class ProvenanceComponent(PipelineComponent):
         input: ValidationInput
     ) -> None:
         """
-        Calculate confidence score for a statement based on multiple factors.
-        Updates the mapping's confidence_factors and confidence_score.
+        Calculate confidence score for a statement based on source citation quality.
+        
+        Note: Entity coverage is handled by FidelityCheck - we only focus on
+        source provenance verification here to avoid component overlap.
         """
         factors = {}
         
@@ -270,21 +272,11 @@ class ProvenanceComponent(PipelineComponent):
         if mapping.source_spans:
             # More spans = higher confidence, up to 3
             span_count = min(len(mapping.source_spans), 3)
-            factors['source_match'] = 0.4 + (span_count / 3) * 0.6
+            factors['source_match'] = 0.5 + (span_count / 3) * 0.5
         else:
             factors['source_match'] = 0.2  # Low but not zero if no span found
         
-        # Factor 2: Entity coverage - check if statement contains extracted entities
-        entities_in_statement = self._count_entities_in_text(
-            mapping.statement_text, 
-            input.extracted_entities
-        )
-        if entities_in_statement > 0:
-            factors['entity_coverage'] = min(0.3 + entities_in_statement * 0.2, 1.0)
-        else:
-            factors['entity_coverage'] = 0.5  # Neutral if no entities expected
-        
-        # Factor 3: Statement length - longer statements need more verification
+        # Factor 2: Statement length - longer statements need more source backing
         word_count = len(mapping.statement_text.split())
         if word_count < 10:
             factors['statement_complexity'] = 0.9  # Short statements are easier to verify
@@ -293,21 +285,15 @@ class ProvenanceComponent(PipelineComponent):
         else:
             factors['statement_complexity'] = 0.5  # Long statements are harder to verify
         
+        # Factor 3: Quote quality - did we find exact quotes?
+        if mapping.source_quotes:
+            factors['quote_quality'] = min(0.5 + len(mapping.source_quotes) * 0.25, 1.0)
+        else:
+            factors['quote_quality'] = 0.3
+        
         # Store factors and calculate weighted score
         mapping.confidence_factors = factors
         mapping.calculate_confidence()
     
-    def _count_entities_in_text(self, text: str, entities) -> int:
-        """Count how many extracted entities appear in the given text."""
-        text_lower = text.lower()
-        count = 0
-
-        for entity in entities.entities:
-            original_text = getattr(entity, "original_text", "") or ""
-            canonical_name = getattr(entity, "canonical_name", "") or ""
-            if original_text and original_text.lower() in text_lower:
-                count += 1
-            if canonical_name and canonical_name.lower() in text_lower:
-                count += 1
-
-        return count
+    # NOTE: _count_entities_in_text was removed - entity coverage is now
+    # handled exclusively by FidelityCheck to avoid component overlap.

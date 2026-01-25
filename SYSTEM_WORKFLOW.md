@@ -66,30 +66,28 @@ Input (Report) → Entity Extraction → RAG (Knowledge Retrieval) → Summary A
 
 **Tool**: `ValidationPipeline` orchestrating multiple validation components
 
-**Validation Checks**:
+**Validation Checks** (4 components - each with a single, non-overlapping responsibility):
 
-1. **Fidelity Check** (`FidelityComponent`)
-   - Ensures all critical entities from original report appear in summary
-   - Uses fuzzy string matching to handle variations
-   - Flags missing findings, anatomy, or measurements
-
-2. **Hallucination Check** (`HallucinationComponent`)
-   - Detects entities in summary not present in original report
-   - Uses LLM to extract entities from summary and compares to original
-   - Prevents AI from inventing medical facts
-
-3. **Readability Check** (`ReadabilityComponent`)
+1. **Readability Check** (`ReadabilityComponent`)
    - Calculates Flesch-Kincaid Grade Level
    - Ensures summary is at 6th-8th grade reading level
    - Flags summaries that are too complex
 
-4. **Safety Check** (`SafetyComponent`)
+2. **Safety Check** (`SafetyComponent`)
    - Scans for banned keywords ("emergency", "call 911", "you must")
    - Prevents alarmist tone or unintended medical advice
    - Ensures appropriate patient communication
 
-5. **Entity Matching** (`EntityMatchingComponent`)
-   - Validates entity alignment between original and summary
+3. **Fidelity Check** (`FidelityComponent`)
+   - Ensures all critical entities from original report appear in summary
+   - Uses fuzzy string matching to handle variations
+   - Flags missing findings, anatomy, or measurements
+   - This is the SINGLE SOURCE OF TRUTH for entity coverage
+
+4. **Provenance Check** (`ProvenanceComponent`)
+   - Validates source citations are accurate (cited quotes exist in original)
+   - Calculates per-statement confidence scores based on source matching
+   - Note: Does NOT count entities (that's FidelityCheck's job)
 
 **Output**: `ValidationReport` with pass/fail status and error messages
 
