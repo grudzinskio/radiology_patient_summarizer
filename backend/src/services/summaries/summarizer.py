@@ -236,7 +236,11 @@ class SummarizerAgent:
             "REQUIREMENTS:",
             "1. You MUST include every item from the extracted entities list below.",
             "2. You MUST NOT include any clinical entities that were not in the original report.",
-            "3. Use 6th-8th grade reading level (simple, clear language).",
+            "3. READABILITY IS CRITICAL - Write at 6th grade level (age 12):",
+            "   - Maximum 15 words per sentence",
+            "   - Use simple, everyday words (not medical jargon)",
+            "   - Replace complex terms with plain definitions provided below",
+            "   - Short sentences only. Break long ideas into multiple sentences.",
             "4. Do NOT give medical advice or recommendations.",
             "5. Do NOT use alarmist language or emergency phrases.",
             "6. Be empathetic and reassuring in tone.",
@@ -291,7 +295,11 @@ class SummarizerAgent:
             "3. source_quotes should be EXACT or near-exact quotes from the original report.",
             "4. You MUST include every item from the extracted entities list.",
             "5. You MUST NOT invent any clinical entities.",
-            "6. Use 6th-8th grade reading level (simple, clear language).",
+            "6. READABILITY IS CRITICAL - Write at 6th grade level (age 12):",
+            "   - Maximum 15 words per sentence",
+            "   - Use simple, everyday words only",
+            "   - Replace ALL medical terms with plain language from definitions below",
+            "   - Short sentences. One idea per sentence.",
             "7. Do NOT give medical advice or use alarmist language.",
             "8. Be empathetic and reassuring in tone.",
             "",
@@ -319,6 +327,7 @@ class SummarizerAgent:
 
 
 def _format_entity_list(extracted_entities: EntityExtractionResult) -> str:
+    """Format entities for inclusion in prompts."""
     items: list[str] = []
     for entity in extracted_entities.entities:
         original_text = getattr(entity, "original_text", "") or ""

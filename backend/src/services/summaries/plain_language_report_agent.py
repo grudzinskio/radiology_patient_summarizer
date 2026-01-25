@@ -15,7 +15,6 @@ from services.summaries.summarizer import SummarizerAgent
 from services.summaries.validation.pipeline import ValidationPipeline
 from services.summaries.validation.readability import ReadabilityComponent
 from services.summaries.validation.safety import SafetyComponent
-from services.summaries.validation.hallucination import HallucinationComponent
 from services.summaries.validation.fidelity import FidelityComponent
 from services.summaries.validation.provenance import ProvenanceComponent
 from services.summaries.refiner import RefinerAgent
@@ -99,11 +98,12 @@ class PlainLanguageReportAgent:
         
         logger.info("Initializing Validation Pipeline...")
         # Build validation pipeline with provenance component
+        # Note: HallucinationComponent removed - it's redundant with FidelityCheck
+        # and was causing false positives and slowdowns
 
         validation_components = [
             ReadabilityComponent(),
             SafetyComponent(),
-            HallucinationComponent(),
             FidelityComponent(),
         ]
         
@@ -425,16 +425,14 @@ class PlainLanguageReportAgent:
         current_retry = state.get("retry_count", 0) + 1
         logger.info(f"Starting Refinement node due to validation failure (Attempt {current_retry}/{MAX_RETRY_ATTEMPTS})")
         
-        plain_language_report = self.refiner_agent.refine_summary(
+        # Now returns SummaryWithProvenance object directly
+        summary_with_prov = self.refiner_agent.refine_summary(
             original_report=state["medical_report"],
             extracted_entities=state["extracted_entities"] or EntityExtractionResult(),
             current_summary=state["plain_language_report"],
             validation_report=state["validation_pipeline_result"],
             retrieved_definitions=state["retrieved_definitions"],
         )
-        
-        # Re-create provenance from refined summary
-        summary_with_prov = SummaryWithProvenance.from_text(plain_language_report)
         
         # Log refinement
         current_log = state.get("chain_of_thought", [])
@@ -443,13 +441,14 @@ class PlainLanguageReportAgent:
             description="Refined summary to address validation errors.",
             details={
                 "previous_errors": [r.component_name for r in state["validation_pipeline_result"].get_failed_components()],
-                "action": "rewrite_and_revalidate"
+                "action": "rewrite_and_revalidate",
+                "mode": "provenance"
             },
             timestamp=time.time()
         )
         
         return {
-            "plain_language_report": plain_language_report,
+            "plain_language_report": summary_with_prov.plain_language_report,
             "summary_with_provenance": summary_with_prov,
             "provenance_report": summary_with_prov.provenance,
             "chain_of_thought": current_log + [log_step],

@@ -87,6 +87,9 @@ class RAGService:
         Returns:
             List of potential medical terms
         """
+        if not text:
+            return []
+            
         terms = []
         
         # Extract capitalized words/phrases (common medical terms)
@@ -160,15 +163,15 @@ class RAGService:
         if self.use_umls and self.spacy_component and medical_report:
             try:
                 # Use SpacyExtractor to extract UMLS definitions (reuses existing component)
-                umls_terms = self.spacy_component.extract_entities(medical_report)
+                umls_entities = self.spacy_component.extract_entities(medical_report)
                 
                 # Filter by confidence and format for prompt
-                for entity in umls_terms:
+                for entity in umls_entities:
                     confidence = getattr(entity, "confidence", 0.0) or 0.0
                     if confidence >= self.umls_min_confidence:
                         original_text = (getattr(entity, "original_text", "") or "").lower()
                         definition = getattr(entity, "definition", "") or ""
-                        canonical_name = (getattr(entity, "canonical_name", "") or "")
+                        canonical_name = getattr(entity, "canonical_name", "") or ""
 
                         if definition and original_text:
                             # Format: use canonical name if different from original

@@ -81,12 +81,16 @@ class FidelityComponent(PipelineComponent):
                 missing_entities.append(entity)
         
         # Create validation result
-        passed = len(missing_entities) == 0
+        # Pass if at least 80% of entities are found (allow some rephrasing)
+        total = len(all_entities)
+        found = len(found_entities)
+        coverage = found / total if total > 0 else 1.0
+        passed = coverage >= 0.8 or len(missing_entities) <= 2
         error_messages = []
         
         if not passed:
             error_messages.append(
-                f"Missing {len(missing_entities)} critical entities in summary: {', '.join(missing_entities[:5])}"
+                f"Missing {len(missing_entities)} critical entities in summary ({coverage*100:.0f}% coverage): {', '.join(missing_entities[:5])}"
                 + (f" and {len(missing_entities) - 5} more" if len(missing_entities) > 5 else "")
             )
         

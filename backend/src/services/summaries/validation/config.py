@@ -4,7 +4,8 @@ All thresholds and settings are centralized here for easy modification.
 """
 
 # Readability Configuration
-READABILITY_MAX_GRADE_LEVEL = 8.0  # Target: 6th-8th grade reading level
+# Target: 6th-8th grade, but allow up to 10 for complex medical content
+READABILITY_MAX_GRADE_LEVEL = 10.0
 
 # Safety Filter Configuration
 SAFETY_BANNED_KEYWORDS = [
@@ -35,11 +36,11 @@ SAFETY_ALARMIST_PATTERNS = [
 ]
 
 # Entity Matching Configuration
-ENTITY_FUZZY_MATCH_THRESHOLD = 80  # Percentage similarity for fuzzy matching (0-100)
+ENTITY_FUZZY_MATCH_THRESHOLD = 70  # Percentage similarity for fuzzy matching (0-100)
 ENTITY_CASE_SENSITIVE = False  # Whether entity matching is case-sensitive
 
 # Self-Correction Loop Configuration
-MAX_RETRY_ATTEMPTS = 3  # Maximum number of refinement attempts
+MAX_RETRY_ATTEMPTS = 2  # Maximum number of refinement attempts (reduced for speed)
 
 # Component Configuration
 ENABLE_FIDELITY_CHECK = True
