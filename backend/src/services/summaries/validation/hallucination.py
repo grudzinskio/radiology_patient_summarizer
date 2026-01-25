@@ -5,13 +5,13 @@ Detects entities in the summary that were not present in the original report.
 import json
 from typing import List, Set
 from services.summaries.validation.base import PipelineComponent
-from schemas.validation import ValidationInput, ValidationResult, EntityExtractionResult
+from schemas.validation import ValidationInput, ValidationResult
 from utils.clients.llm_clients import BaseLLMClient, OpenAIClient
 
 
 class HallucinationComponent(PipelineComponent):
     """
-    Validates that the summary does not contain entities (findings, anatomy, measurements)
+    Validates that the summary does not contain clinical entities
     that were not present in the original report.
     """
     
@@ -19,18 +19,15 @@ class HallucinationComponent(PipelineComponent):
         self.component_name = "HallucinationCheck"
         self.llm_client = llm_client or OpenAIClient()
     
-    def _extract_entities_from_text(self, text: str) -> EntityExtractionResult:
+    def _extract_entities_from_text(self, text: str) -> List[str]:
         """
         Extract entities from text using LLM.
         Uses the same format as the entity extraction pipeline.
         """
-        prompt = f"""Extract all medical findings, anatomy, and measurements from the following text.
+        prompt = f"""Extract all clinical entities from the following text.
 Output as JSON with the following structure:
 {{
-    "findings": ["list of medical findings"],
-    "anatomy": ["list of anatomical locations"],
-    "measurements": ["list of measurements"],
-    "uncertainty": ["list of uncertainty phrases"]
+    "entities": ["list of clinical entity strings"]
 }}
 
 Text to analyze:
@@ -57,21 +54,12 @@ Return only valid JSON, no additional text."""
             response = response.strip()
             
             data = json.loads(response)
-            return EntityExtractionResult(
-                findings=data.get("findings", []),
-                anatomy=data.get("anatomy", []),
-                measurements=data.get("measurements", []),
-                uncertainty=data.get("uncertainty", [])
-            )
+            entities = data.get("entities", [])
+            return entities if isinstance(entities, list) else []
         except Exception as e:
             # Fallback: return empty entities if extraction fails
             # This prevents the component from breaking the pipeline
-            return EntityExtractionResult(
-                findings=[],
-                anatomy=[],
-                measurements=[],
-                uncertainty=[]
-            )
+            return []
     
     def _normalize_entity_set(self, entities: List[str]) -> Set[str]:
         """
@@ -95,22 +83,20 @@ Return only valid JSON, no additional text."""
         # Extract entities from summary
         summary_entities = self._extract_entities_from_text(input.draft_summary)
         
-        # Normalize for comparison
-        original_findings = self._normalize_entity_set(original_entities.findings)
-        original_anatomy = self._normalize_entity_set(original_entities.anatomy)
-        original_measurements = self._normalize_entity_set(original_entities.measurements)
-        
-        summary_findings = self._normalize_entity_set(summary_entities.findings)
-        summary_anatomy = self._normalize_entity_set(summary_entities.anatomy)
-        summary_measurements = self._normalize_entity_set(summary_entities.measurements)
+        original_terms = []
+        for entity in original_entities.entities:
+            original_text = getattr(entity, "original_text", "") or ""
+            canonical_name = getattr(entity, "canonical_name", "") or ""
+            if original_text:
+                original_terms.append(original_text)
+            if canonical_name and canonical_name.lower() != original_text.lower():
+                original_terms.append(canonical_name)
+
+        original_set = self._normalize_entity_set(original_terms)
+        summary_set = self._normalize_entity_set(summary_entities)
         
         # Find hallucinated entities (in summary but not in original)
-        hallucinated_findings = summary_findings - original_findings
-        hallucinated_anatomy = summary_anatomy - original_anatomy
-        hallucinated_measurements = summary_measurements - original_measurements
-        
-        # Combine all hallucinated entities
-        all_hallucinated = list(hallucinated_findings | hallucinated_anatomy | hallucinated_measurements)
+        all_hallucinated = list(summary_set - original_set)
         
         # Create validation result
         passed = len(all_hallucinated) == 0
@@ -130,8 +116,8 @@ Return only valid JSON, no additional text."""
             metadata={
                 "hallucinated_count": len(all_hallucinated),
                 "hallucinated_entities": all_hallucinated,
-                "summary_entities_count": len(summary_findings | summary_anatomy | summary_measurements),
-                "original_entities_count": len(original_findings | original_anatomy | original_measurements),
+                "summary_entities_count": len(summary_set),
+                "original_entities_count": len(original_set),
             }
         )
         

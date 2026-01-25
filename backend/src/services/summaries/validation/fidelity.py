@@ -28,9 +28,13 @@ class FidelityComponent(PipelineComponent):
         """
         # Collect all critical entities
         all_entities = []
-        all_entities.extend(input.extracted_entities.findings)
-        all_entities.extend(input.extracted_entities.anatomy)
-        all_entities.extend(input.extracted_entities.measurements)
+        for entity in input.extracted_entities.entities:
+            original_text = getattr(entity, "original_text", "") or ""
+            canonical_name = getattr(entity, "canonical_name", "") or ""
+            if original_text:
+                all_entities.append(original_text)
+            if canonical_name and canonical_name.lower() != original_text.lower():
+                all_entities.append(canonical_name)
         
         # Remove duplicates and empty strings
         all_entities = list(set([e.strip() for e in all_entities if e.strip()]))

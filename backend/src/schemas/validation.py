@@ -2,15 +2,39 @@ from typing import List, Dict, Optional, Literal, Any
 from pydantic import BaseModel, Field
 
 
+class ClinicalEntity(BaseModel):
+    """Structured representation of a clinical entity with context."""
+    original_text: str = Field(..., description="The original text of the entity")
+    canonical_name: str = Field(..., description="The canonical name of the entity")
+    definition: Optional[str] = Field(default=None, description="The definition of the entity")
+    semantic_types: list[str] = Field(default_factory=list, description="The semantic types of the entity")
+    confidence: float = Field(..., description="The confidence score of the entity")
+    
+    # MedSpaCy context attributes
+    section: Optional[str] = Field(default=None, description="The section of the entity")
+    is_negated: bool = Field(..., description="Whether the entity is negated")
+    is_uncertain: bool = Field(..., description="Whether the entity is uncertain")
+    is_family: bool = Field(..., description="Whether the entity is a family history")
+    is_historical: bool = Field(..., description="Whether the entity is historical")
+
+    # Position in text
+    start_char: int = Field(..., description="The start character of the entity in the text")
+    end_char: int = Field(..., description="The end character of the entity in the text")
+    
+    # MeSH identifiers
+    mesh_id: str = Field(..., description="The MeSH ID of the entity")
+    aliases: list[str] = Field(default_factory=list, description="The aliases of the entity")
+
+
 class EntityExtractionResult(BaseModel):
     """
     Structure matching the entity extraction output format.
     Contains all medical facts extracted from the original report.
     """
-    findings: List[str] = Field(default_factory=list, description="Medical findings (e.g., '5mm nodule', 'mild opacification')")
-    anatomy: List[str] = Field(default_factory=list, description="Anatomical locations (e.g., 'right lower lobe', 'pleural space')")
-    measurements: List[str] = Field(default_factory=list, description="Measurements (e.g., '5mm', '2.3cm')")
-    uncertainty: List[str] = Field(default_factory=list, description="Uncertainty phrases (e.g., 'cannot rule out', 'suggestive of')")
+    entities: List[ClinicalEntity] = Field(
+        default_factory=list,
+        description="Raw entities extracted from the report",
+    )
 
 
 class ValidationInput(BaseModel):

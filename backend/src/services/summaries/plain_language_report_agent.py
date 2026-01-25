@@ -239,25 +239,26 @@ class PlainLanguageReportAgent:
         logger.info("Starting Entity Extraction node")
         
         try:
-            raw_terms = self.entity_extraction_pipeline.extract_entities(state["medical_report"])
+            terms_list = self.entity_extraction_pipeline.extract_entities(state["medical_report"])
         except Exception as e:
             logger.error(f"Error in entity extraction: {e}")
-            raw_terms = []
+            terms_list = []
 
-        findings = [
-            term.original_text for term in raw_terms if hasattr(term, 'original_text') and term.original_text
-        ] if isinstance(raw_terms, list) else []
+        if not isinstance(terms_list, list):
+            terms_list = []
 
-        extracted_entities = EntityExtractionResult(findings=findings)
+        extracted_entities = EntityExtractionResult(entities=terms_list)
         
         # Log the extraction step
         current_log = state.get("chain_of_thought", [])
         log_step = ChainOfThoughtStep(
             step="Entity Extraction",
-            description=f"Identified {len(findings)} medical entities from the report.",
+            description=f"Identified {len(extracted_entities.entities)} clinical entities from the report.",
             details={
-                "found_entities_count": len(findings),
-                "entities_sample": findings[:5] if findings else []
+                "found_entities_count": len(extracted_entities.entities),
+                "entities_sample": [
+                    e.original_text for e in extracted_entities.entities[:5] if hasattr(e, "original_text")
+                ],
             },
             timestamp=time.time()
         )

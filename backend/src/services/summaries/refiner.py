@@ -105,7 +105,7 @@ class RefinerAgent:
             "",
             "REQUIREMENTS:",
             "1. You MUST include every item from the extracted entities list below.",
-            "2. You MUST NOT include any medical findings, anatomy, or measurements that were not in the original report.",
+            "2. You MUST NOT include any clinical entities that were not in the original report.",
             "3. Use 6th-8th grade reading level (simple, clear language).",
             "4. Do NOT give medical advice or recommendations.",
             "5. Do NOT use alarmist language or emergency phrases.",
@@ -115,9 +115,7 @@ class RefinerAgent:
             original_report,
             "",
             "EXTRACTED ENTITIES (you must include all of these):",
-            f"Findings: {', '.join(extracted_entities.findings) if extracted_entities.findings else 'None'}",
-            f"Anatomy: {', '.join(extracted_entities.anatomy) if extracted_entities.anatomy else 'None'}",
-            f"Measurements: {', '.join(extracted_entities.measurements) if extracted_entities.measurements else 'None'}",
+            _format_entity_list(extracted_entities),
             "",
             "CURRENT SUMMARY (that failed validation):",
             current_summary,
@@ -137,3 +135,16 @@ class RefinerAgent:
         ])
         
         return "\n".join(prompt_parts)
+
+
+def _format_entity_list(extracted_entities: EntityExtractionResult) -> str:
+    items: list[str] = []
+    for entity in extracted_entities.entities:
+        original_text = getattr(entity, "original_text", "") or ""
+        canonical_name = getattr(entity, "canonical_name", "") or ""
+        if original_text:
+            items.append(original_text)
+        if canonical_name and canonical_name.lower() != original_text.lower():
+            items.append(canonical_name)
+    unique_items = list(dict.fromkeys([item.strip() for item in items if item.strip()]))
+    return ", ".join(unique_items) if unique_items else "None"

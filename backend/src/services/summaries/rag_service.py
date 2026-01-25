@@ -132,21 +132,17 @@ class RAGService:
         
         # Collect all potential terms from entities
         all_terms = []
-        
-        # Add findings (these are the main medical terms)
-        all_terms.extend(extracted_entities.findings)
-        
-        # Add anatomy terms
-        all_terms.extend(extracted_entities.anatomy)
-        
-        # Extract additional terms from entity strings
-        for finding in extracted_entities.findings:
-            terms = self._extract_medical_terms(finding)
-            all_terms.extend(terms)
-        
-        for anatomy in extracted_entities.anatomy:
-            terms = self._extract_medical_terms(anatomy)
-            all_terms.extend(terms)
+        for entity in extracted_entities.entities:
+            original_text = getattr(entity, "original_text", "") or ""
+            canonical_name = getattr(entity, "canonical_name", "") or ""
+            if original_text:
+                all_terms.append(original_text)
+            if canonical_name and canonical_name.lower() != original_text.lower():
+                all_terms.append(canonical_name)
+            for term in self._extract_medical_terms(original_text):
+                all_terms.append(term)
+            for term in self._extract_medical_terms(canonical_name):
+                all_terms.append(term)
         
         # Remove duplicates while preserving order
         unique_terms = []
@@ -164,23 +160,23 @@ class RAGService:
         if self.use_umls and self.spacy_component and medical_report:
             try:
                 # Use SpacyExtractor to extract UMLS definitions (reuses existing component)
-                umls_terms = self.spacy_component.extract_technical_terms(medical_report)
+                umls_terms = self.spacy_component.extract_entities(medical_report)
                 
                 # Filter by confidence and format for prompt
-                for term_dict in umls_terms:
-                    confidence = term_dict.get("confidence", 0.0)
+                for entity in umls_terms:
+                    confidence = getattr(entity, "confidence", 0.0) or 0.0
                     if confidence >= self.umls_min_confidence:
-                        original_text = term_dict.get("original_text", "").lower()
-                        definition = term_dict.get("definition", "")
-                        canonical_name = term_dict.get("canonical_name", "")
-                        
+                        original_text = (getattr(entity, "original_text", "") or "").lower()
+                        definition = getattr(entity, "definition", "") or ""
+                        canonical_name = (getattr(entity, "canonical_name", "") or "")
+
                         if definition and original_text:
                             # Format: use canonical name if different from original
                             if canonical_name and canonical_name.lower() != original_text:
                                 umls_definitions[original_text] = f"{canonical_name}: {definition}"
                             else:
                                 umls_definitions[original_text] = definition
-                        
+
                         # Stop if we have enough
                         if len(umls_definitions) >= max_definitions * 2:
                             break
@@ -225,37 +221,35 @@ class RAGService:
         
         # Step 5: Limit and prioritize
         if len(definitions) > max_definitions:
-            # Prioritize: findings > anatomy > other terms
             prioritized = {}
-            
-            # First: findings from UMLS or dataset
-            for finding in extracted_entities.findings:
-                finding_lower = finding.lower().strip()
-                if finding_lower in definitions:
-                    prioritized[finding] = definitions[finding_lower]
-            
-            # Second: anatomy terms
-            for anatomy in extracted_entities.anatomy:
-                anatomy_lower = anatomy.lower().strip()
-                if anatomy_lower in definitions and anatomy_lower not in prioritized:
-                    prioritized[anatomy] = definitions[anatomy_lower]
-            
-            # Third: remaining UMLS definitions (authoritative)
-            for term, definition in definitions.items():
+
+            # First: terms that directly appeared in the extracted entities
+            for entity in extracted_entities.entities:
+                for term in (getattr(entity, "original_text", ""), getattr(entity, "canonical_name", "")):
+                    term_lower = term.lower().strip() if term else ""
+                    if term_lower and term_lower in definitions and term not in prioritized:
+                        prioritized[term] = definitions[term_lower]
+                        if len(prioritized) >= max_definitions:
+                            break
                 if len(prioritized) >= max_definitions:
                     break
-                if term not in prioritized:
-                    # Check if this came from UMLS (prioritize authoritative sources)
-                    if term in umls_definitions:
+
+            # Second: remaining UMLS definitions (authoritative)
+            if len(prioritized) < max_definitions:
+                for term, definition in definitions.items():
+                    if len(prioritized) >= max_definitions:
+                        break
+                    if term not in prioritized and term in umls_definitions:
                         prioritized[term] = definition
-            
-            # Fourth: remaining dataset definitions
-            for term, definition in definitions.items():
-                if len(prioritized) >= max_definitions:
-                    break
-                if term not in prioritized:
-                    prioritized[term] = definition
-            
+
+            # Third: remaining dataset definitions
+            if len(prioritized) < max_definitions:
+                for term, definition in definitions.items():
+                    if len(prioritized) >= max_definitions:
+                        break
+                    if term not in prioritized:
+                        prioritized[term] = definition
+
             definitions = prioritized
         
         logger.info(f"Retrieved {len(definitions)} total medical term definitions "

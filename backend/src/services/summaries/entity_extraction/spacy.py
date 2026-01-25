@@ -5,34 +5,11 @@ from scispacy.linking import EntityLinker
 import scispacy
 import medspacy
 from dataclasses import dataclass
+from schemas.validation import ClinicalEntity
 
 logger = logging.getLogger(__name__)
 
 _NLP_INSTANCE = None
-
-@dataclass
-class ClinicalEntity:
-    """Structured representation of a clinical entity with context."""
-    original_text: str
-    canonical_name: str
-    definition: Optional[str]
-    semantic_types: list[str]
-    confidence: float
-    
-    # MedSpaCy context attributes
-    section: Optional[str]
-    is_negated: bool
-    is_uncertain: bool
-    is_family: bool
-    is_historical: bool
-    
-    # Position in text
-    start_char: int
-    end_char: int
-    
-    # MeSH identifiers
-    mesh_id: str
-    aliases: list[str]
 
 
 class SpacyExtractor:
@@ -115,11 +92,11 @@ class SpacyExtractor:
             if ent._.kb_ents:
                 mesh_id, mesh_score = ent._.kb_ents[0]
                 concept = self.linker.kb.cui_to_entity[mesh_id]
-                
-                # Filter for clinically relevant types only
+
+                # FILTER 1: Only keep clinically relevant semantic types
                 has_clinical_type = any(t in self.CLINICAL_TYPES for t in concept.types)
                 if not has_clinical_type:
-                    logger.debug(f"Skipping non-clinical entity: {ent.text} ({concept.types})")
+                    logger.debug(f"Skipping non-clinical type: {ent.text} ({concept.types})")
                     continue
 
             
@@ -145,7 +122,8 @@ class SpacyExtractor:
                 mesh_id=mesh_id or "UNKNOWN",
                 aliases=list(concept.aliases)[:5] if concept else []
             ))
-        
+
+
         # Deduplicate
         seen = {}
         for ent in entities:
@@ -155,11 +133,89 @@ class SpacyExtractor:
                 seen[key] = ent
         
         deduped = list(seen.values())
+
+        filtered = [entity for entity in deduped if self._is_clinically_relevant(entity)]
+
+        logger.debug(f"Extracted {len(entities)} → Deduplicated {len(deduped)} → Filtered {len(filtered)}")
+
+        return filtered
+
+    def _is_mislinked(self, entity: ClinicalEntity) -> bool:
+        """Detect when entity linking is clearly wrong."""
         
-        if len(entities) > len(deduped):
-            logger.debug(f"Deduplicated {len(entities)} -> {len(deduped)} entities")
+        if entity.mesh_id == 'UNKNOWN':
+            return False
         
-        return deduped
+        original = entity.original_text.lower()
+        canonical = entity.canonical_name.lower()
+        
+        # Get words from both
+        original_words = set(original.split())
+        canonical_words = set(canonical.split())
+        
+        # Remove connectors
+        CONNECTORS = {'of', 'or', 'and', 'the', 'a', 'an', 'in', 'to', ','}
+        canonical_words -= CONNECTORS
+        original_words -= CONNECTORS
+        
+        # Find substantive words added in canonical
+        extra_words = canonical_words - original_words
+        
+        # These additions indicate wrong links
+        WRONG_ADDITIONS = {
+            'cancer', 'neoplasm', 'malignant', 'pneumocyst', 'pneumocysts',
+            'cranial', 'pain', 'retinal', 'nail', 'sleep', 'genetic', 'wave'
+        }
+        
+        if any(word in WRONG_ADDITIONS for word in extra_words):
+            logger.debug(f"Mislink detected: '{original}' → '{canonical}' (extra: {extra_words})")
+            return True
+        
+        return False
+
+    def _is_clinically_relevant(self, entity: ClinicalEntity) -> bool:
+        """Robust clinical relevance check."""
+        
+        # STEP 1: Check for mislinks
+        if entity.mesh_id != 'UNKNOWN' and self._is_mislinked(entity):
+            logger.debug(f"Filtering mislink: '{entity.original_text}' → '{entity.canonical_name}'")
+            return False
+        
+        # STEP 2: Handle UNKNOWN entities (no MeSH link)
+        if len(entity.semantic_types) == 0:
+            # Keep substantial multi-word clinical phrases
+            return len(entity.original_text.split()) >= 4
+        
+        # STEP 3: Semantic type-specific logic
+        primary_type = entity.semantic_types[0]
+        
+        # T023 (Anatomy): only if abnormal context (negated/uncertain)
+        if primary_type == 'T023':
+            return entity.is_negated or entity.is_uncertain
+        
+        # T030 (Body Space): only if abnormal context
+        if primary_type == 'T030':
+            return entity.is_negated or entity.is_uncertain
+        
+        # T024 (Tissue): only if abnormal context
+        if primary_type == 'T024':
+            return entity.is_negated or entity.is_uncertain
+        
+        # T031 (Body Substance): only if abnormal context
+        if primary_type == 'T031':
+            return entity.is_negated or entity.is_uncertain
+        
+        # Pathology types: check confidence
+        PATHOLOGY = {'T047', 'T046', 'T037', 'T191', 'T048', 'T049'}
+        if primary_type in PATHOLOGY:
+            return entity.confidence >= 0.70
+        
+        # Findings/Symptoms
+        if primary_type in {'T033', 'T184'}:
+            return entity.confidence >= 0.70
+        
+        # Everything else: high threshold or reject
+        return entity.confidence >= 0.90
 
     def get_section_summary(self, report: str) -> dict[str, list[ClinicalEntity]]:
         """

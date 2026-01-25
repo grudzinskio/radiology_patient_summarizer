@@ -301,20 +301,13 @@ class ProvenanceComponent(PipelineComponent):
         """Count how many extracted entities appear in the given text."""
         text_lower = text.lower()
         count = 0
-        
-        # Check findings
-        for finding in entities.findings:
-            if finding.lower() in text_lower:
+
+        for entity in entities.entities:
+            original_text = getattr(entity, "original_text", "") or ""
+            canonical_name = getattr(entity, "canonical_name", "") or ""
+            if original_text and original_text.lower() in text_lower:
                 count += 1
-        
-        # Check anatomy
-        for anatomy in entities.anatomy:
-            if anatomy.lower() in text_lower:
+            if canonical_name and canonical_name.lower() in text_lower:
                 count += 1
-        
-        # Check measurements
-        for measurement in entities.measurements:
-            if measurement.lower() in text_lower:
-                count += 1
-        
+
         return count
