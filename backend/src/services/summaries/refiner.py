@@ -74,8 +74,11 @@ class RefinerAgent:
             {
                 "role": "system",
                 "content": (
-                    "You are an empathetic medical translator. Your job is to create patient-friendly "
-                    "summaries of medical reports that are accurate, safe, and easy to understand. "
+                    "You are a warm, caring medical translator who helps patients understand their medical reports. "
+                    "Write like you're having a friendly conversation with someone who is anxious about their results. "
+                    "Be reassuring and natural—never robotic or clinical. "
+                    "Avoid repeating the same information in different ways. "
+                    "Group related findings together into flowing sentences rather than listing each fact separately. "
                     "You MUST respond with valid JSON only, no additional text."
                 )
             },
@@ -185,9 +188,9 @@ class RefinerAgent:
         """Build the refinement prompt requesting JSON output."""
         
         prompt_parts = [
-            "Your previous summary failed validation. Please rewrite it to fix the errors below.",
+            "Your previous summary needs revision. Please fix the issues listed below.",
             "",
-            "VALIDATION ERRORS:",
+            "ISSUES TO FIX:",
         ]
         
         for i, error in enumerate(error_messages, 1):
@@ -197,60 +200,64 @@ class RefinerAgent:
         if "ReadabilityCheck" in failed_components:
             prompt_parts.extend([
                 "",
-                "⚠️ CRITICAL READABILITY FIX REQUIRED:",
-                "Your previous summary was TOO COMPLEX. You MUST:",
-                "- Break EVERY long sentence into 2-3 shorter ones (MAX 12-15 words each)",
-                "- Replace ALL technical terms with simple words from the definitions below",
-                "- Use everyday words: 'germ' not 'pathogen', 'found' not 'identified', 'study' not 'investigate'",
+                "⚠️ READABILITY FIX REQUIRED:",
+                "Your summary was too complex. Please:",
+                "- Break long sentences into shorter ones (max 12-15 words)",
+                "- Use everyday words instead of medical terms",
                 "- Write as if explaining to a 12-year-old",
-                "- One idea per sentence. No compound sentences.",
+                "- One idea per sentence",
             ])
 
         prompt_parts.extend([
             "",
-            "TASK: Create a REVISED plain language summary of the medical report below WITH SOURCE CITATIONS.",
+            "CRITICAL - USE PLAIN LANGUAGE ONLY:",
+            "- You MUST replace ALL medical terms with their plain language definitions below.",
+            "- NEVER use jargon like 'acute infarct', 'hemorrhage', 'ischemic change', 'diffusion restriction'.",
+            "- Instead say things like 'stroke', 'bleeding', 'small blood vessel changes', etc.",
+            "- If a definition is provided below, USE IT - don't keep the medical term.",
             "",
-            "You must respond with valid JSON in this exact format:",
+            "WRITING STYLE:",
+            "- Write like you're talking to a nervous friend about their results.",
+            "- Sound human and warm, NOT like a robot listing facts.",
+            "- NEVER repeat the same finding in different words.",
+            "- Group related findings naturally (e.g., 'There's no sign of stroke, bleeding, or tumors').",
+            "- Use contractions (it's, there's, you're).",
+            "",
+            "TASK: Rewrite the summary WITH SOURCE CITATIONS in this JSON format:",
             "{",
             '  "statements": [',
             '    {',
-            '      "text": "Your first summary sentence in plain language.",',
-            '      "source_quotes": ["exact quote from original report that supports this"]',
-            '    },',
-            '    {',
-            '      "text": "Your second summary sentence.",',
-            '      "source_quotes": ["supporting quote 1", "supporting quote 2"]',
+            '      "text": "Your warm, PLAIN LANGUAGE summary sentence (no jargon).",',
+            '      "source_quotes": ["exact quote from original report"]',
             '    }',
             '  ]',
             "}",
             "",
             "REQUIREMENTS:",
-            "1. Address ALL validation errors listed above.",
-            "2. Each statement should be a complete, standalone sentence in plain language.",
-            "3. Each statement MUST cite the specific text from the original report that supports it.",
-            "4. source_quotes should be EXACT or near-exact quotes from the original report.",
-            "5. You MUST include every item from the extracted entities list.",
-            "6. You MUST NOT invent any clinical entities.",
-            "7. Use 6th-8th grade reading level (simple, clear language).",
-            "8. Do NOT give medical advice or use alarmist language.",
+            "1. Fix ALL issues listed above.",
+            "2. Use the plain language translations provided below.",
+            "3. Cite text from the original report for each statement.",
+            "4. Include all key findings (but mention each only ONCE).",
+            "5. Use simple words. Keep sentences under 15 words.",
+            "6. No medical advice. No alarming language.",
             "",
             "ORIGINAL REPORT:",
             original_report,
             "",
-            "EXTRACTED ENTITIES (you must include all of these):",
+            "KEY FINDINGS TO INCLUDE (translate to plain language):",
             _format_entity_list(extracted_entities),
             "",
-            "CURRENT SUMMARY (that failed validation):",
+            "PREVIOUS SUMMARY (needs fixing):",
             current_summary,
         ])
         
         if retrieved_definitions:
             prompt_parts.extend([
                 "",
-                "MEDICAL TERM DEFINITIONS (use these when explaining terms):",
+                "PLAIN LANGUAGE TRANSLATIONS (YOU MUST USE THESE instead of medical terms):",
             ])
-            for term, definition in list(retrieved_definitions.items())[:10]:
-                prompt_parts.append(f"- {term}: {definition}")
+            for term, definition in list(retrieved_definitions.items())[:15]:
+                prompt_parts.append(f"- Instead of '{term}', say: {definition}")
         
         prompt_parts.extend([
             "",

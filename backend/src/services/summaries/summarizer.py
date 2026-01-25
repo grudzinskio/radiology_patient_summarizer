@@ -58,7 +58,13 @@ class SummarizerAgent:
         messages = [
             {
                 "role": "system",
-                "content": "You are an empathetic medical translator. Your job is to create patient-friendly summaries of medical reports that are accurate, safe, and easy to understand."
+                "content": (
+                    "You are a warm, caring medical translator who helps patients understand their medical reports. "
+                    "Write like you're having a friendly conversation with someone who is anxious about their results. "
+                    "Be reassuring and natural—never robotic or clinical. "
+                    "Avoid repeating the same information in different ways. "
+                    "Group related findings together into flowing sentences rather than listing each fact separately."
+                )
             },
             {
                 "role": "user",
@@ -102,8 +108,11 @@ class SummarizerAgent:
             {
                 "role": "system",
                 "content": (
-                    "You are an empathetic medical translator. Your job is to create patient-friendly "
-                    "summaries of medical reports that are accurate, safe, and easy to understand. "
+                    "You are a warm, caring medical translator who helps patients understand their medical reports. "
+                    "Write like you're having a friendly conversation with someone who is anxious about their results. "
+                    "Be reassuring and natural—never robotic or clinical. "
+                    "Avoid repeating the same information in different ways. "
+                    "Group related findings together into flowing sentences rather than listing each fact separately. "
                     "You MUST respond with valid JSON only, no additional text."
                 )
             },
@@ -226,41 +235,55 @@ class SummarizerAgent:
         """Build the standard summary prompt (plain text output)."""
         
         prompt_parts = [
-            "You are an empathetic medical translator. Your job is to create patient-friendly summaries of medical reports that are accurate, safe, and easy to understand.",
+            "TASK: Create a warm, natural summary of this medical report for a patient.",
             "",
-            "TASK: Create a plain language summary of the medical report below.",
+            "CRITICAL - USE PLAIN LANGUAGE ONLY:",
+            "- You MUST replace ALL medical terms with their plain language definitions below.",
+            "- NEVER use jargon like 'acute infarct', 'hemorrhage', 'ischemic change', 'diffusion restriction'.",
+            "- Instead say things like 'stroke', 'bleeding', 'small blood vessel changes', etc.",
+            "- If a definition is provided below, USE IT - don't keep the medical term.",
+            "",
+            "WRITING STYLE:",
+            "- Write like you're talking to a friend who is nervous about their results.",
+            "- Sound human and warm, NOT like a robot listing facts.",
+            "- NEVER repeat the same finding in different words.",
+            "- Group related findings naturally (e.g., 'The good news is there's no sign of stroke, bleeding, or tumors').",
+            "- Start with WHY the scan was done conversationally.",
+            "- Use contractions and natural phrasing (it's, there's, you're).",
         ]
         
         prompt_parts.extend([
             "",
-            "REQUIREMENTS:",
-            "1. You MUST include every item from the extracted entities list below.",
-            "2. You MUST NOT include any clinical entities that were not in the original report.",
-            "3. READABILITY IS CRITICAL - Write at 6th grade level (age 12):",
-            "   - Maximum 15 words per sentence",
-            "   - Use simple, everyday words (not medical jargon)",
-            "   - Replace complex terms with plain definitions provided below",
-            "   - Short sentences only. Break long ideas into multiple sentences.",
-            "4. Do NOT give medical advice or recommendations.",
-            "5. Do NOT use alarmist language or emergency phrases.",
-            "6. Be empathetic and reassuring in tone.",
+            "ACCURACY REQUIREMENTS:",
+            "1. Include all key findings from the extracted entities list below.",
+            "2. Do NOT invent any findings not in the original report.",
+            "3. Use 6th grade reading level with simple, everyday words.",
+            "4. Keep sentences short (under 15 words).",
+            "5. Do NOT give medical advice or use alarming language.",
+            "",
+            "AVOID THESE COMMON MISTAKES:",
+            "- Using medical jargon when a plain definition is available.",
+            "- Saying 'Reason: X. Also: X' - that's redundant and robotic.",
+            "- Listing the same finding multiple ways.",
+            "- Starting every sentence similarly.",
             "",
             "ORIGINAL REPORT:",
             original_report,
             "",
-            "EXTRACTED ENTITIES (you must include all of these):",
+            "KEY FINDINGS TO INCLUDE (mention each once, in plain language):",
             _format_entity_list(extracted_entities),
             "",
-            "Please generate a patient-friendly summary of the original report.",
         ])
         
         if retrieved_definitions:
             prompt_parts.extend([
-                "",
-                "MEDICAL TERM DEFINITIONS (use these when explaining terms):",
+                "PLAIN LANGUAGE TRANSLATIONS (YOU MUST USE THESE instead of medical terms):",
             ])
-            for term, definition in list(retrieved_definitions.items())[:10]:
-                prompt_parts.append(f"- {term}: {definition}")
+            for term, definition in list(retrieved_definitions.items())[:15]:
+                prompt_parts.append(f"- Instead of '{term}', say: {definition}")
+            prompt_parts.append("")
+        
+        prompt_parts.append("Now write a friendly, natural summary using ONLY plain language that any patient can understand.")
         
         return "\n".join(prompt_parts)
     
@@ -273,50 +296,53 @@ class SummarizerAgent:
         """Build the provenance-aware summary prompt (JSON output with citations)."""
         
         prompt_parts = [
-            "TASK: Create a plain language summary of the medical report below WITH SOURCE CITATIONS.",
+            "TASK: Create a warm, natural summary of this medical report WITH SOURCE CITATIONS.",
+            "",
+            "CRITICAL - USE PLAIN LANGUAGE ONLY:",
+            "- You MUST replace ALL medical terms with their plain language definitions below.",
+            "- NEVER use jargon like 'acute infarct', 'hemorrhage', 'ischemic change', 'diffusion restriction'.",
+            "- Instead say things like 'stroke', 'bleeding', 'small blood vessel changes', etc.",
+            "- If a definition is provided below, USE IT - don't keep the medical term.",
+            "",
+            "WRITING STYLE:",
+            "- Write like you're talking to a friend who is nervous about their results.",
+            "- Sound human and warm, NOT like a robot listing facts.",
+            "- NEVER repeat the same finding in different words.",
+            "- Group related findings naturally (e.g., 'The good news is there's no sign of stroke, bleeding, or tumors').",
+            "- Start with WHY the scan was done conversationally.",
+            "- Use contractions and natural phrasing.",
             "",
             "You must respond with valid JSON in this exact format:",
             "{",
             '  "statements": [',
             '    {',
-            '      "text": "Your first summary sentence in plain language.",',
-            '      "source_quotes": ["exact quote from original report that supports this"]',
-            '    },',
-            '    {',
-            '      "text": "Your second summary sentence.",',
-            '      "source_quotes": ["supporting quote 1", "supporting quote 2"]',
+            '      "text": "Your summary sentence in warm, PLAIN language (no medical jargon).",',
+            '      "source_quotes": ["exact quote from original report"]',
             '    }',
             '  ]',
             "}",
             "",
             "REQUIREMENTS:",
-            "1. Each statement should be a complete, standalone sentence in plain language.",
-            "2. Each statement MUST cite the specific text from the original report that supports it.",
-            "3. source_quotes should be EXACT or near-exact quotes from the original report.",
-            "4. You MUST include every item from the extracted entities list.",
-            "5. You MUST NOT invent any clinical entities.",
-            "6. READABILITY IS CRITICAL - Write at 6th grade level (age 12):",
-            "   - Maximum 15 words per sentence",
-            "   - Use simple, everyday words only",
-            "   - Replace ALL medical terms with plain language from definitions below",
-            "   - Short sentences. One idea per sentence.",
-            "7. Do NOT give medical advice or use alarmist language.",
-            "8. Be empathetic and reassuring in tone.",
+            "1. Each statement must use plain language from the definitions below.",
+            "2. Cite specific text from the original report for each statement.",
+            "3. Include all key findings (but mention each only ONCE).",
+            "4. Do NOT invent findings. Do NOT give medical advice.",
+            "5. Use 6th grade reading level. Sentences under 15 words.",
             "",
             "ORIGINAL REPORT:",
             original_report,
             "",
-            "EXTRACTED ENTITIES (you must include all of these):",
+            "KEY FINDINGS TO INCLUDE (translate each to plain language):",
             _format_entity_list(extracted_entities),
         ]
         
         if retrieved_definitions:
             prompt_parts.extend([
                 "",
-                "MEDICAL TERM DEFINITIONS (use these when explaining terms):",
+                "PLAIN LANGUAGE TRANSLATIONS (YOU MUST USE THESE instead of medical terms):",
             ])
-            for term, definition in list(retrieved_definitions.items())[:10]:
-                prompt_parts.append(f"- {term}: {definition}")
+            for term, definition in list(retrieved_definitions.items())[:15]:
+                prompt_parts.append(f"- Instead of '{term}', say: {definition}")
         
         prompt_parts.extend([
             "",
