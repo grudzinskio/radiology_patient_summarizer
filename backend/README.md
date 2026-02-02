@@ -38,7 +38,7 @@ https://www.python.org/ftp/python/3.12.9/python-3.12.9-amd64.exe
 To run the server with hot-reload enabled (great for development), run the following command from the root of the project (or ensure your python path is set correctly):
 
 ```bash
-# From the root directory (hack-4-health-2026-radiohead)
+# From the project root
 python backend/src/main.py
 ```
 
